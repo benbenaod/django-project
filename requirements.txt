@@ -2,7 +2,7 @@ Django==6.0
 asgiref==3.11.0
 sqlparse==0.5.4
 pandas==2.2.3
-
+openpyxl==3.1.5
 gunicorn==22.0.0
 whitenoise==6.7.0
 
