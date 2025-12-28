@@ -18,7 +18,7 @@ from django.views.decorators.http import require_POST
 import json
 from .forms import CourseForm
 from .models import Course, Student, Teacher
-
+from django.conf import settings
 BUILDING_URL_MAP = {
     "F": "https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E5%AD%B8%E6%80%9D%E6%A8%93/@25.1186186,121.5166288,17z/data=!3m1!4b1!4m6!3m5!1s0x3442af4ac9da7987:0xf36d626d63834f5!8m2!3d25.1186138!4d121.5192037!16s%2Fg%2F11s82z2lrp?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
     "S": "https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E7%A7%91%E6%8A%80%E5%A4%A7%E6%A8%93/@25.117542,121.5180909,17z/data=!3m1!5s0x3442ae8a4f198def:0x16fcf46afefac4c2!4m16!1m9!3m8!1s0x3442ae8967e29825:0xa74a929b7ae3dbf6!2z5ZyL56uL6Ie65YyX6K2355CG5YGl5bq35aSn5a2456eR5oqA5aSn5qiT!8m2!3d25.1175372!4d121.5206658!9m1!1b1!16s%2Fg%2F11b6jgqh03!3m5!1s0x3442ae8967e29825:0xa74a929b7ae3dbf6!8m2!3d25.1175372!4d121.5206658!16s%2Fg%2F11b6jgqh03?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
@@ -133,20 +133,25 @@ def logout_view(request):
 
 
 def get_excel_dir():
-    candidates = [
-        Path("/content/drive/MyDrive/python/系統分析/課程查詢"),
-        Path("/content/drive/My Drive/python/系統分析/課程查詢"),
-    ]
-    for p in candidates:
-        if p.exists():
-            print(f"✅ 使用 Excel 資料夾：{p}")
-            return p
-    print("⚠️ 找不到任何有效的 Excel 資料夾，請確認路徑。")
-    return candidates[0]
+    # 專案根目錄（manage.py 那層）
+    base = Path(settings.BASE_DIR)
 
+    # 你目前是把 xlsx 放在 repo 根目錄
+    p = base
+
+    # 若你之後想整理到 data/ 資料夾，改成：
+    # p = base / "data"
+
+    xlsx_files = list(p.glob("*.xlsx"))
+    if xlsx_files:
+        print(f"✅ 使用 Excel 資料夾：{p}")
+        print("✅ 找到 xlsx：", [f.name for f in xlsx_files])
+        return p
+
+    print(f"⚠️ 在 {p} 裡沒有找到任何 .xlsx 檔案")
+    return p
 
 EXCEL_DIR = get_excel_dir()
-
 
 # ==============================
 #   小工具：任何值 → 安全字串（處理 NaN/None/"nan"）
@@ -1337,7 +1342,7 @@ def course_query(request):
 
 
 def import_excel(request):
-    file_path = EXCEL_DIR / "課程查詢_1131.xlsx"
+    file_path = EXCEL_DIR / f"課程查詢_{semester}.xlsx"
     try:
         df = pd.read_excel(file_path, header=4)
     except Exception as e:
