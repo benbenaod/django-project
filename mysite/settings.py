@@ -13,7 +13,10 @@ SECRET_KEY = 'https://maranda-unpresentable-abiogenetically.ngrok-free.dev'
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ['ben1109.pythonanywhere.com']
+ALLOWED_HOSTS = ["django-project-2yio.onrender.com",
+                 ".onrender.com",
+                 "127.0.0.1",
+                 "localhost",]
 CSRF_TRUSTED_ORIGINS = [
     "https://maranda-unpresentable-abiogenetically.ngrok-free.dev",
 ]
