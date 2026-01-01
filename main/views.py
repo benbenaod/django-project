@@ -1511,3 +1511,16 @@ def remove_personal_course(request, course_id: int):
         return JsonResponse({"ok": False, "message": "course_id 格式錯誤。"}, status=400)
 
     return _handle_personal_action(request, "remove", cid, force=False)
+def debug_db(request):
+    return JsonResponse({
+        "course_total": Course.objects.count(),
+        "semester_distinct": list(
+            Course.objects.values_list("semester", flat=True).distinct().order_by("semester")[:50]
+        ),
+        "sample_3": list(
+            Course.objects.values("id", "semester", "course_name", "teacher", "day", "period")[:3]
+        ),
+        "excel_dir": str(EXCEL_DIR),
+        "excel_files": [p.name for p in sorted(EXCEL_DIR.glob("*.xlsx"))],
+        "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
+    })
