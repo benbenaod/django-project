@@ -23,5 +23,5 @@ path("personal/add/<int:course_id>/", views.add_personal_course, name="add_perso
 path("personal/remove/<int:course_id>/", views.remove_personal_course, name="remove_personal_course"),
 
 path("teacher-info/", views.teacher_info, name="teacher_info"),
-
+path("debug_db/", views.debug_db, name="debug_db"),
 ]
