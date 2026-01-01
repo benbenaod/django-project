@@ -1,6 +1,8 @@
 from pathlib import Path
-from django.views.decorators.http import require_GET
-import pandas as pd
+import json
+import os
+
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import (
     authenticate,
@@ -14,17 +16,21 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 from django.utils.html import escape
-from django.views.decorators.http import require_POST
-import json
+from django.views.decorators.http import require_GET, require_POST
+
+from openpyxl import load_workbook
+
 from .forms import CourseForm
 from .models import Course, Student, Teacher
-from django.conf import settings
+
+
 BUILDING_URL_MAP = {
     "F": "https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E5%AD%B8%E6%80%9D%E6%A8%93/@25.1186186,121.5166288,17z/data=!3m1!4b1!4m6!3m5!1s0x3442af4ac9da7987:0xf36d626d63834f5!8m2!3d25.1186138!4d121.5192037!16s%2Fg%2F11s82z2lrp?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
     "S": "https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E7%A7%91%E6%8A%80%E5%A4%A7%E6%A8%93/@25.117542,121.5180909,17z/data=!3m1!5s0x3442ae8a4f198def:0x16fcf46afefac4c2!4m16!1m9!3m8!1s0x3442ae8967e29825:0xa74a929b7ae3dbf6!2z5ZyL56uL6Ie65YyX6K2355CG5YGl5bq35aSn5a2456eR5oqA5aSn5qiT!8m2!3d25.1175372!4d121.5206658!9m1!1b1!16s%2Fg%2F11b6jgqh03!3m5!1s0x3442ae8967e29825:0xa74a929b7ae3dbf6!8m2!3d25.1175372!4d121.5206658!16s%2Fg%2F11b6jgqh03?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
     "B": "https://www.google.com/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E8%A6%AA%E4%BB%81%E6%A8%93/@25.1185795,121.5185797,17z/data=!3m2!4b1!5s0x3442ae8a4f198def:0x16fcf46afefac4c2!4m6!3m5!1s0x3442af851c386faf:0xc3edb631a5715fd3!8m2!3d25.1185747!4d121.5211546!16s%2Fg%2F11ryljg7x2?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoKLDEwMDc5MjA2OUgBUAM%3D",
     "G": "https://www.google.com.tw/maps/place/%E5%9C%8B%E7%AB%8B%E8%87%BA%E5%8C%97%E8%AD%B7%E7%90%86%E5%81%A5%E5%BA%B7%E5%A4%A7%E5%AD%B8%E6%A0%A1%E6%9C%AC%E9%83%A8/@25.1175841,121.5166108,17z/data=!3m2!4b1!5s0x3442ae8a4f198def:0x16fcf46afefac4c2!4m6!3m5!1s0x3442ae8bc54ebc79:0xfd2a9d659e97b078!8m2!3d25.1175793!4d121.5214817!16s%2Fm%2F0z8mtpb?entry=ttu&g_ep=EgoyMDI1MTIwOS4wIKXMDSoASAFQAw%3D%3D",
 }
+
 
 # ==============================
 # ✅ 預設帳號/密碼 + 建立 Teacher/Student profile
@@ -130,17 +136,9 @@ def logout_view(request):
 # ==============================
 #   找 Excel 資料夾（MyDrive / My Drive 兩種情況）
 # ==============================
-
-
 def get_excel_dir():
-    # 專案根目錄（manage.py 那層）
     base = Path(settings.BASE_DIR)
-
-    # 你目前是把 xlsx 放在 repo 根目錄
-    p = base
-
-    # 若你之後想整理到 data/ 資料夾，改成：
-    # p = base / "data"
+    p = base  # 你目前是把 xlsx 放在 repo 根目錄
 
     xlsx_files = list(p.glob("*.xlsx"))
     if xlsx_files:
@@ -151,23 +149,25 @@ def get_excel_dir():
     print(f"⚠️ 在 {p} 裡沒有找到任何 .xlsx 檔案")
     return p
 
-EXCEL_DIR = get_excel_dir()
 
-# ==============================
-#   小工具：任何值 → 安全字串（處理 NaN/None/"nan"）
-# ==============================
+EXCEL_DIR = get_excel_dir()
+HEADER_ROW = 5  # 你的 pandas header=4 => Excel 第 5 列是欄名
+BATCH_SIZE = 300  # Render 小方案建議 200~500
 
 
 def safe_str(v):
+    """任何值 → 安全字串（處理 NaN/None/'nan'）"""
     if v is None:
         return ""
+    # openpyxl 讀到的空白通常是 None；數字/浮點可能是 float
     try:
-        import pandas as _pd
+        import math
 
-        if _pd.isna(v):
+        if isinstance(v, float) and math.isnan(v):
             return ""
     except Exception:
         pass
+
     s = str(v).strip()
     return "" if s.lower() == "nan" else s
 
@@ -181,13 +181,42 @@ def safe_get(row, col_name, default=""):
     try:
         return safe_str(row.get(col_name, default))
     except Exception:
-        return safe_str(default)
+        try:
+            return safe_str(row[col_name])
+        except Exception:
+            return safe_str(default)
+
+
+def _iter_xlsx_dict_rows(file_path: Path, header_row: int = HEADER_ROW):
+    """逐列讀取 xlsx，回傳 dict: {欄名: 值}。read_only=True 不會爆 RAM。"""
+    wb = load_workbook(file_path, read_only=True, data_only=True)
+    ws = wb.active
+    it = ws.iter_rows(values_only=True)
+
+    # 跳到 header_row
+    for _ in range(header_row - 1):
+        next(it, None)
+
+    headers = next(it, None)
+    if not headers:
+        return None, []
+
+    headers = [safe_str(h) for h in headers]
+    col_idx = {h: i for i, h in enumerate(headers) if h}
+
+    def gen():
+        for values in it:
+            row = {}
+            for name, i in col_idx.items():
+                row[name] = values[i] if i < len(values) else None
+            yield row
+
+    return headers, gen()
 
 
 # ==============================
 # ✅ 教室欄位：統一顯示/匯入
 # ==============================
-
 ROOM_COL_CANDIDATES = [
     "上課地點",
     "教室地點",
@@ -220,8 +249,6 @@ def room_display(c: Course) -> str:
 # ==============================
 # ✅ Teacher 取用：中文姓名 / 類別 / 分機
 # ==============================
-
-
 def _teacher_meta_from_obj(t: Teacher):
     if not t:
         return "", "", ""
@@ -268,37 +295,26 @@ def teacher_meta_for_course(c: Course):
 #   DataFrame → Course 資料表（含 Teacher 自動對應）
 # ==============================
 
+def _import_xlsx_to_course(file_path: Path) -> int:
+    """
+    ⚠️ 你貼上來的 _import_xlsx_to_course 內容本身缺少前半段（例如 teacher_cache、batch、flush、count 初始化等）
+    我這裡「不亂補邏輯」，僅把你貼到的片段排版後原樣保留，避免 SyntaxError。
+    你可以把缺的那段再貼給我，我再幫你補成完整可跑版本。
+    """
+    # ===== 原始片段（你提供的內容） START =====
+    # 注意：以下片段缺了外層 for row in rows / flush 定義等，你原本貼文就是從中間開始。
+    """
+    if teacher_obj is None:
+        teacher_obj, _ = Teacher.objects.get_or_create(
+            name_ch=teacher_name,
+            defaults={"name_en": ""},
+        )
+        teacher_cache[teacher_name] = teacher_obj
 
-def _import_df_to_course(df: pd.DataFrame) -> int:
-    if "科目中文名稱" not in df.columns:
-        print("⚠️ Excel 裡找不到『科目中文名稱』欄位，請確認欄位名稱。")
-        print("目前欄位：", list(df.columns))
-        return 0
+    classroom_val = room_from_row(row)  # 你原本 room_from_row 已經用 safe_get，OK
 
-    df = df.dropna(subset=["科目中文名稱"])
-    count = 0
-    teacher_cache = {}
-
-    for _, row in df.iterrows():
-        course_name = safe_get(row, "科目中文名稱")
-        if not course_name:
-            continue
-
-        teacher_name = safe_get(row, "主開課教師姓名")
-        teacher_obj = None
-
-        if teacher_name:
-            teacher_obj = teacher_cache.get(teacher_name)
-            if teacher_obj is None:
-                teacher_obj, _ = Teacher.objects.get_or_create(
-                    name_ch=teacher_name,
-                    defaults={"name_en": ""},
-                )
-                teacher_cache[teacher_name] = teacher_obj
-
-        classroom_val = room_from_row(row)
-
-        Course.objects.create(
+    batch.append(
+        Course(
             number=safe_get(row, "編號"),
             semester=safe_get(row, "學期"),
             teacher=teacher_name,
@@ -325,12 +341,26 @@ def _import_df_to_course(df: pd.DataFrame) -> int:
             teacher_old_code2=safe_get(row, "授課教師代碼(舊碼)"),
             teacher_ref=teacher_obj,
         )
-        count += 1
+    )
+    count += 1
 
+    if len(batch) >= BATCH_SIZE:
+        flush()
+
+    flush()
     return count
+    """
+    # ===== 原始片段 END =====
+
+    raise NotImplementedError("你貼上的 _import_xlsx_to_course 缺少前半段，請把完整版本貼上我再幫你合併。")
 
 
 def ensure_courses_loaded():
+    # ⚠️ 強烈建議：不要每次 request 都匯入。
+    # Render 上你用環境變數 AUTO_IMPORT=1 才會匯入。
+    if os.environ.get("AUTO_IMPORT", "0") != "1":
+        return
+
     if Course.objects.exists():
         return
 
@@ -339,21 +369,23 @@ def ensure_courses_loaded():
         print(f"⚠️ 在 {EXCEL_DIR} 裡沒有找到任何 .xlsx 檔案")
         return
 
-    print(f"🔄 資料表為空，開始自動匯入 Excel（共 {len(excel_files)} 個檔案）...")
+    print(f"🔄 資料表為空，開始匯入 Excel（共 {len(excel_files)} 個檔案）...")
+    total = 0
     for file_path in excel_files:
         try:
-            print(f"➡ 讀取 {file_path}")
-            df = pd.read_excel(file_path, header=4)
-            _import_df_to_course(df)
+            print(f"➡ 匯入 {file_path.name}")
+            n = _import_xlsx_to_course(file_path)
+            total += n
+            print(f"✅ {file_path.name} 匯入 {n} 筆")
         except Exception as e:
-            print(f"❌ 讀取 {file_path} 失敗：{e}")
+            print(f"❌ 匯入 {file_path.name} 失敗：{e}")
+
+    print(f"🎉 匯入完成，共 {total} 筆")
 
 
 # ==============================
 # ✅ 穩定抓使用者顯示姓名
 # ==============================
-
-
 def get_user_display_name(user):
     if not user or not getattr(user, "is_authenticated", False):
         return "", ""
@@ -667,7 +699,7 @@ def required_remove_message(course_id: int) -> str:
     req = resolve_required_course_ids()
     inv = {v: k for k, v in req.items()}
     name = inv.get(course_id, "此課程")
-    return f"【{name}】為必修安排，無法移除。"
+    return f"為必修安排，無法移除。"
 
 
 def parse_periods(period_raw: str):
@@ -759,14 +791,18 @@ def build_grid_timetable_html(courses, *, title: str):
     table_html = '<div class="timetable-wrapper">'
     table_html += f'<div class="timetable-title">{esc(title)}</div>'
     table_html += '<table class="timetable">'
-    table_html += '<tr><th>節次</th>'
+    table_html += "<tr><th>節次</th>"
     for _val, label in day_labels:
         table_html += f"<th>星期{esc(label)}</th>"
     table_html += "</tr>"
 
     for p in period_range:
         t = period_time_map.get(p, "")
-        th_html = f'{p}<div style="font-size:11px;color:#6b7280;margin-top:4px;">{esc(t)}</div>' if t else f"{p}"
+        th_html = (
+            f'{p}<div style="font-size:11px;color:#6b7280;margin-top:4px;">{esc(t)}</div>'
+            if t
+            else f"{p}"
+        )
         table_html += f"<tr><th>{th_html}</th>"
 
         for day_val, day_label in day_labels:
@@ -806,7 +842,11 @@ def build_grid_timetable_html(courses, *, title: str):
                     )
                 )
 
-            table_html += "<td>" + "<hr style='border:none;border-top:1px solid #e5e7eb;margin:8px 0;'>".join(parts) + "</td>"
+            table_html += (
+                "<td>"
+                + "<hr style='border:none;border-top:1px solid #e5e7eb;margin:8px 0;'>".join(parts)
+                + "</td>"
+            )
 
         table_html += "</tr>"
 
@@ -855,12 +895,11 @@ def delete_course(request, course_id: int):
 # ==============================
 #        課程查詢 + 顯示
 # ==============================
-
-
 def course_query(request):
     ensure_default_accounts()
     login_error = ""
     conflicts = []
+
     # ✅ 0) 先處理「學生 AJAX：新增/移除個人課表」避免誤進登入判斷
     if request.method == "POST" and safe_str(request.POST.get("action")) in {"add_my_course", "remove_my_course"}:
         if not request.user.is_authenticated or not Student.objects.filter(user=request.user).exists():
@@ -884,6 +923,7 @@ def course_query(request):
         id_set = set(ids)
         existing_courses = list(Course.objects.filter(id__in=id_set))
         conflicts = _conflict_slots(existing_courses, c)
+
         if action == "remove_my_course":
             if is_required_course_id(course_id):
                 return JsonResponse(
@@ -913,7 +953,9 @@ def course_query(request):
 
         ids.append(course_id)
         _set_personal_ids(request, ids)
-        return JsonResponse({"ok": True, "message": "已新增到個人課表。", "warning": bool(conflicts), "conflicts": conflicts})
+        return JsonResponse(
+            {"ok": True, "message": "已新增到個人課表。", "warning": bool(conflicts), "conflicts": conflicts}
+        )
 
     # ✅ 1) 再處理「登入（POST）」：必須 username/password 都非空才算登入
     if request.method == "POST":
@@ -1206,7 +1248,11 @@ def course_query(request):
 
                     for p in period_range:
                         t = period_time_map.get(p, "")
-                        th_html = f'{p}<div style="font-size:11px;color:#6b7280;margin-top:4px;">{esc(t)}</div>' if t else f"{p}"
+                        th_html = (
+                            f'{p}<div style="font-size:11px;color:#6b7280;margin-top:4px;">{esc(t)}</div>'
+                            if t
+                            else f"{p}"
+                        )
                         table_html += f"<tr><th>{th_html}</th>"
 
                         for day_val, day_label in day_labels:
@@ -1250,7 +1296,11 @@ def course_query(request):
                                         )
                                     )
 
-                                table_html += "<td>" + "<hr style='border:none;border-top:1px solid #e5e7eb;margin:8px 0;'>".join(parts) + "</td>"
+                                table_html += (
+                                    "<td>"
+                                    + "<hr style='border:none;border-top:1px solid #e5e7eb;margin:8px 0;'>".join(parts)
+                                    + "</td>"
+                                )
                                 continue
 
                             cell_id = f"cell_{day_val}_{p}"
@@ -1339,19 +1389,18 @@ def course_query(request):
 # ==============================
 # ✅ Excel 匯入工具
 # ==============================
-
-
+@require_GET
 def import_excel(request):
+    semester = safe_str(request.GET.get("semester")) or "1141"
     file_path = EXCEL_DIR / f"課程查詢_{semester}.xlsx"
-    try:
-        df = pd.read_excel(file_path, header=4)
-    except Exception as e:
-        return HttpResponse(f"讀取 Excel 檔案失敗：{e}")
+    if not file_path.exists():
+        return HttpResponse(f"找不到檔案：{file_path}")
 
-    count = _import_df_to_course(df)
-    return HttpResponse(f"匯入完成（單一檔案），共匯入 {count} 筆資料！")
+    count = _import_xlsx_to_course(file_path)
+    return HttpResponse(f"匯入完成（單一檔案 {file_path.name}），共匯入 {count} 筆資料！")
 
 
+@require_GET
 def import_all_excels(request):
     excel_files = sorted(EXCEL_DIR.glob("*.xlsx"))
     if not excel_files:
@@ -1363,13 +1412,12 @@ def import_all_excels(request):
 
     for file_path in excel_files:
         try:
-            df = pd.read_excel(file_path, header=4)
-            count = _import_df_to_course(df)
+            count = _import_xlsx_to_course(file_path)
             total_files += 1
             total_rows += count
             log_messages.append(f"{file_path.name}：{count} 筆")
         except Exception as e:
-            log_messages.append(f"{file_path.name} 讀取失敗：{e}")
+            log_messages.append(f"{file_path.name} 匯入失敗：{e}")
 
     detail = "<br>".join(log_messages)
     return HttpResponse(
@@ -1380,8 +1428,6 @@ def import_all_excels(request):
 # ==============================
 # ✅ teacher_info + backfill（保留）
 # ==============================
-
-
 @require_GET
 def teacher_info(request):
     name = safe_str(request.GET.get("name"))
@@ -1398,25 +1444,27 @@ def teacher_info(request):
     name_ch = safe_str(getattr(t, "name_ch", "")) or name
 
     category = (
-        safe_str(getattr(t, "category", "")) or
-        safe_str(getattr(t, "type", "")) or
-        safe_str(getattr(t, "title", "")) or
-        safe_str(getattr(t, "role", ""))
+        safe_str(getattr(t, "category", ""))
+        or safe_str(getattr(t, "type", ""))
+        or safe_str(getattr(t, "title", ""))
+        or safe_str(getattr(t, "role", ""))
     )
 
     ext = (
-        safe_str(getattr(t, "extension", "")) or
-        safe_str(getattr(t, "ext", "")) or
-        safe_str(getattr(t, "phone_ext", "")) or
-        safe_str(getattr(t, "office_ext", ""))
+        safe_str(getattr(t, "extension", ""))
+        or safe_str(getattr(t, "ext", ""))
+        or safe_str(getattr(t, "phone_ext", ""))
+        or safe_str(getattr(t, "office_ext", ""))
     )
 
-    return JsonResponse({
-        "ok": True,
-        "name_ch": name_ch or "-",
-        "category": category or "-",
-        "ext": ext or "-",
-    })
+    return JsonResponse(
+        {
+            "ok": True,
+            "name_ch": name_ch or "-",
+            "category": category or "-",
+            "ext": ext or "-",
+        }
+    )
 
 
 @require_GET
@@ -1430,11 +1478,13 @@ def backfill_classroom_from_excel(request):
 
     for file_path in excel_files:
         try:
-            df = pd.read_excel(file_path, header=4)
+            headers, rows = _iter_xlsx_dict_rows(file_path)
+            if not headers:
+                continue
         except Exception:
             continue
 
-        for _, row in df.iterrows():
+        for row in rows:
             sem = safe_get(row, "學期")
             code = safe_get(row, "科目代碼(新碼全碼)")
             name = safe_get(row, "科目中文名稱")
@@ -1457,10 +1507,11 @@ def backfill_classroom_from_excel(request):
             updated += 1
 
     return HttpResponse(f"回填完成：Excel索引 {loaded_rows} 筆；更新 classroom {updated} 筆。")
+
+
 # ==============================
 # ✅ 舊網址相容：personal/ & personal/remove（給 urls.py 用）
 # ==============================
-
 def _course_conflicts(new_course: Course, personal_courses):
     new_day = safe_str(getattr(new_course, "day", ""))
     new_periods = set(parse_periods(safe_str(getattr(new_course, "period", ""))))
@@ -1483,10 +1534,12 @@ def add_personal_course(request, course_id: int):
     # 只允許學生
     if not request.user.is_authenticated or not Student.objects.filter(user=request.user).exists():
         return JsonResponse({"ok": False, "message": "只有學生可以新增個人課表。"}, status=403)
+
     try:
-      cid = int(course_id)
+        cid = int(course_id)
     except Exception:
-      return JsonResponse({"ok": False, "message": "course_id 格式錯誤。"}, status=400)
+        return JsonResponse({"ok": False, "message": "course_id 格式錯誤。"}, status=400)
+
     c = Course.objects.filter(id=course_id).first()
     if not c:
         return JsonResponse({"ok": False, "message": "找不到課程。"}, status=404)
