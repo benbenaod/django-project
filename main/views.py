@@ -11,6 +11,7 @@ from django.contrib.auth import (
     logout,
     update_session_auth_hash,
 )
+from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
@@ -159,7 +160,7 @@ def safe_str(v):
     """任何值 → 安全字串（處理 NaN/None/'nan'）"""
     if v is None:
         return ""
-    # openpyxl 讀到的空白通常是 None；數字/浮點可能是 float
+
     try:
         import math
 
@@ -292,67 +293,97 @@ def teacher_meta_for_course(c: Course):
 
 
 # ==============================
-#   DataFrame → Course 資料表（含 Teacher 自動對應）
+# ✅ Excel → Course（openpyxl 逐列 + bulk_create）
 # ==============================
-
 def _import_xlsx_to_course(file_path: Path) -> int:
     """
-    ⚠️ 你貼上來的 _import_xlsx_to_course 內容本身缺少前半段（例如 teacher_cache、batch、flush、count 初始化等）
-    我這裡「不亂補邏輯」，僅把你貼到的片段排版後原樣保留，避免 SyntaxError。
-    你可以把缺的那段再貼給我，我再幫你補成完整可跑版本。
+    用 openpyxl 逐列讀取 xlsx，避免 pandas 吃 RAM/timeout。
+    需要你已經有：
+      - _iter_xlsx_dict_rows()
+      - safe_get(), safe_str()
+      - room_from_row()
+      - Teacher, Course model
+      - HEADER_ROW, BATCH_SIZE
     """
-    # ===== 原始片段（你提供的內容） START =====
-    # 注意：以下片段缺了外層 for row in rows / flush 定義等，你原本貼文就是從中間開始。
-    """
-    if teacher_obj is None:
-        teacher_obj, _ = Teacher.objects.get_or_create(
-            name_ch=teacher_name,
-            defaults={"name_en": ""},
-        )
-        teacher_cache[teacher_name] = teacher_obj
+    headers, rows = _iter_xlsx_dict_rows(file_path, header_row=HEADER_ROW)
+    if not headers or rows is None:
+        print(f"⚠️ 無法讀取表頭：{file_path.name}")
+        return 0
 
-    classroom_val = room_from_row(row)  # 你原本 room_from_row 已經用 safe_get，OK
+    if "科目中文名稱" not in headers:
+        print("⚠️ Excel 裡找不到『科目中文名稱』欄位，請確認欄位名稱。")
+        print("目前欄位：", headers)
+        return 0
 
-    batch.append(
-        Course(
-            number=safe_get(row, "編號"),
-            semester=safe_get(row, "學期"),
-            teacher=teacher_name,
-            course_code=safe_get(row, "科目代碼(新碼全碼)"),
-            department_code=safe_get(row, "系所代碼"),
-            core_code=safe_get(row, "核心四碼"),
-            group_code=safe_get(row, "科目組別"),
-            grade=safe_get(row, "年級"),
-            class_group=safe_get(row, "上課班組"),
-            course_name=course_name,
-            division=safe_get(row, "課別名稱"),
-            system=safe_get(row, "學制別"),
-            teaching_group=safe_get(row, "授課群組"),
-            week_info=safe_get(row, "上課週次"),
-            day=safe_get(row, "上課星期"),
-            period=safe_get(row, "上課節次"),
-            classroom=classroom_val,
-            course_summary_ch=safe_get(row, "課程中文摘要"),
-            course_summary_en=safe_get(row, "課程英文摘要"),
-            teacher_old_code=safe_get(row, "主開課教師代碼(舊碼)"),
-            course_old_code=safe_get(row, "科目代碼(舊碼)"),
-            schedule_old_code=safe_get(row, "課表代碼(舊碼)"),
-            schedule_old_name=safe_get(row, "課表名稱(舊碼)"),
-            teacher_old_code2=safe_get(row, "授課教師代碼(舊碼)"),
-            teacher_ref=teacher_obj,
-        )
-    )
-    count += 1
+    count = 0
+    teacher_cache = {}  # {teacher_name: Teacher}
+    batch = []
 
-    if len(batch) >= BATCH_SIZE:
+    def flush():
+        """把 batch 寫入 DB 並清空。"""
+        nonlocal batch
+        if not batch:
+            return
+        Course.objects.bulk_create(batch, batch_size=BATCH_SIZE)
+        batch = []
+
+    with transaction.atomic():
+        for row in rows:
+            course_name = safe_get(row, "科目中文名稱")
+            if not course_name:
+                continue
+
+            teacher_name = safe_get(row, "主開課教師姓名")
+            teacher_obj = None
+
+            if teacher_name:
+                teacher_obj = teacher_cache.get(teacher_name)
+                if teacher_obj is None:
+                    teacher_obj, _ = Teacher.objects.get_or_create(
+                        name_ch=teacher_name,
+                        defaults={"name_en": ""},
+                    )
+                    teacher_cache[teacher_name] = teacher_obj
+
+            classroom_val = room_from_row(row)
+
+            batch.append(
+                Course(
+                    number=safe_get(row, "編號"),
+                    semester=safe_get(row, "學期"),
+                    teacher=teacher_name,
+                    course_code=safe_get(row, "科目代碼(新碼全碼)"),
+                    department_code=safe_get(row, "系所代碼"),
+                    core_code=safe_get(row, "核心四碼"),
+                    group_code=safe_get(row, "科目組別"),
+                    grade=safe_get(row, "年級"),
+                    class_group=safe_get(row, "上課班組"),
+                    course_name=course_name,
+                    division=safe_get(row, "課別名稱"),
+                    system=safe_get(row, "學制別"),
+                    teaching_group=safe_get(row, "授課群組"),
+                    week_info=safe_get(row, "上課週次"),
+                    day=safe_get(row, "上課星期"),
+                    period=safe_get(row, "上課節次"),
+                    classroom=classroom_val,
+                    course_summary_ch=safe_get(row, "課程中文摘要"),
+                    course_summary_en=safe_get(row, "課程英文摘要"),
+                    teacher_old_code=safe_get(row, "主開課教師代碼(舊碼)"),
+                    course_old_code=safe_get(row, "科目代碼(舊碼)"),
+                    schedule_old_code=safe_get(row, "課表代碼(舊碼)"),
+                    schedule_old_name=safe_get(row, "課表名稱(舊碼)"),
+                    teacher_old_code2=safe_get(row, "授課教師代碼(舊碼)"),
+                    teacher_ref=teacher_obj,
+                )
+            )
+            count += 1
+
+            if len(batch) >= BATCH_SIZE:
+                flush()
+
         flush()
 
-    flush()
     return count
-    """
-    # ===== 原始片段 END =====
-
-    raise NotImplementedError("你貼上的 _import_xlsx_to_course 缺少前半段，請把完整版本貼上我再幫你合併。")
 
 
 def ensure_courses_loaded():
@@ -901,7 +932,10 @@ def course_query(request):
     conflicts = []
 
     # ✅ 0) 先處理「學生 AJAX：新增/移除個人課表」避免誤進登入判斷
-    if request.method == "POST" and safe_str(request.POST.get("action")) in {"add_my_course", "remove_my_course"}:
+    if request.method == "POST" and safe_str(request.POST.get("action")) in {
+        "add_my_course",
+        "remove_my_course",
+    }:
         if not request.user.is_authenticated or not Student.objects.filter(user=request.user).exists():
             return JsonResponse({"ok": False, "message": "請先以學生身分登入。"}, status=401)
 
@@ -941,11 +975,12 @@ def course_query(request):
 
         existing_courses = list(Course.objects.filter(id__in=list(id_set)))
         if conflicts:
+            # ✅ 原本你寫了 "": conflicts，這樣前端拿不到 key
             return JsonResponse(
                 {
                     "ok": False,
                     "conflict": True,
-                    "": conflicts,
+                    "conflicts": conflicts,
                     "message": f"此課程與你的個人課表衝堂：{_format_conflicts(conflicts)}",
                 },
                 status=409,
@@ -1051,7 +1086,9 @@ def course_query(request):
             personal_courses = [m[i] for i in my_course_ids if i in m]
             personal_timetable_html = build_grid_timetable_html(personal_courses, title="我的個人課表")
         else:
-            personal_timetable_html = '<div class="no-result">找不到 A0 的「系統分析 / 研究概論(資管系)」課程資料。</div>'
+            personal_timetable_html = (
+                '<div class="no-result">找不到 A0 的「系統分析 / 研究概論(資管系)」課程資料。</div>'
+            )
 
     timetable_html = ""
 
@@ -1308,7 +1345,7 @@ def course_query(request):
 
                             select_html = (
                                 f'<select class="cell-select" id="{cell_id}_select" '
-                                f"onchange=\"updateTimetableCell('{cell_id}');\" "
+                                f'onchange="updateTimetableCell(\'{cell_id}\');" '
                                 f'title="{esc(first.course_name)}">'
                             )
 
@@ -1420,9 +1457,7 @@ def import_all_excels(request):
             log_messages.append(f"{file_path.name} 匯入失敗：{e}")
 
     detail = "<br>".join(log_messages)
-    return HttpResponse(
-        f"匯入完成，共處理 {total_files} 個檔案，總共 {total_rows} 筆資料。<br><br>{detail}"
-    )
+    return HttpResponse(f"匯入完成，共處理 {total_files} 個檔案，總共 {total_rows} 筆資料。<br><br>{detail}")
 
 
 # ==============================
@@ -1555,7 +1590,6 @@ def add_personal_course(request, course_id: int):
 
     force = safe_str(request.POST.get("force"))
     if conflicts and force != "1":
-        # 回傳衝堂細節（維持你原本格式）
         conflict_list = []
         day_map = {"1": "一", "2": "二", "3": "三", "4": "四", "5": "五", "6": "六", "7": "日"}
         for cc in conflicts:
@@ -1602,10 +1636,7 @@ def remove_personal_course(request, course_id: int):
     ensure_fixed_personal_courses(request)
 
     if is_required_course_id(cid):
-        return JsonResponse(
-            {"ok": False, "required": True, "message": required_remove_message(cid)},
-            status=409,
-        )
+        return JsonResponse({"ok": False, "required": True, "message": required_remove_message(cid)}, status=409)
 
     ids = _get_personal_ids(request)
     ids = [i for i in ids if i != cid]
