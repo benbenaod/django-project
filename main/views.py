@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 import json
 import os
-from typing import Dict, Generator, Iterable, List, Optional, Tuple
-from django.contrib.auth import get_user_model, login
+from typing import Dict, Iterable, List, Optional, Tuple
+
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
@@ -69,8 +69,8 @@ def safe_get(row: dict, col_name: str, default="") -> str:
 # ==============================
 # Excel 資料夾與讀取
 # ==============================
-HEADER_ROW = 5        # 你的 pandas header=4 => Excel 第 5 列是欄名
-BATCH_SIZE = 300      # Render 小方案建議 200~500
+HEADER_ROW = 5  # 你的 pandas header=4 => Excel 第 5 列是欄名
+BATCH_SIZE = 300  # Render 小方案建議 200~500
 
 
 def get_excel_dir() -> Path:
@@ -88,7 +88,9 @@ def get_excel_dir() -> Path:
 EXCEL_DIR = get_excel_dir()
 
 
-def _iter_xlsx_dict_rows(file_path: Path, header_row: int = HEADER_ROW) -> Tuple[Optional[List[str]], Iterable[dict]]:
+def _iter_xlsx_dict_rows(
+    file_path: Path, header_row: int = HEADER_ROW
+) -> Tuple[Optional[List[str]], Iterable[dict]]:
     """
     逐列讀取 xlsx，回傳 (headers, rows_generator)。
     重點：generator 結束後會自動 wb.close()，避免檔案 handle/記憶體累積。
@@ -220,8 +222,7 @@ DEPT_NAME_MAP = {
     "23140": "休閒產業與健康促進系",
     "32140": "運動保健系",
     "33140": "生死與健康心理諮商系",
-    # ...（你原本那一大段照貼即可，我這裡保留你原本內容）
-    # 你可以把你原本 DEPT_NAME_MAP 完整段落貼回來覆蓋這個 dict
+    # ...（你原本那一大段照貼即可）
 }
 
 FOUR_TECH_DEPTS = {
@@ -356,12 +357,20 @@ def get_user_display_name(user) -> Tuple[str, str]:
 
     t = Teacher.objects.filter(user=user).first()
     if t:
-        name = safe_str(getattr(t, "name_ch", "")) or safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", ""))
+        name = (
+            safe_str(getattr(t, "name_ch", ""))
+            or safe_str(getattr(user, "first_name", ""))
+            or safe_str(getattr(user, "username", ""))
+        )
         return "老師", name
 
     s = Student.objects.filter(user=user).first()
     if s:
-        name = safe_str(getattr(s, "name", "")) or safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", ""))
+        name = (
+            safe_str(getattr(s, "name", ""))  # 你的 Student 可能有 name
+            or safe_str(getattr(user, "first_name", ""))
+            or safe_str(getattr(user, "username", ""))
+        )
         return "學生", name
 
     first = safe_str(getattr(user, "first_name", ""))
@@ -381,19 +390,20 @@ def is_student_user(request) -> bool:
 
 
 # ==============================
-# （開發用）預設帳密：只在 DEBUG 建立
+# DEMO / 預設帳密（可用環境變數在 Render 開啟）
 # ==============================
 _DEFAULT_CREATED = False
 
-
-
 DEMO_AUTO_LOGIN = os.environ.get("DEMO_AUTO_LOGIN", "0") == "1"
+DEMO_SEED_ACCOUNTS = os.environ.get("DEMO_SEED_ACCOUNTS", "0") == "1"
 DEFAULT_STUDENT_USERNAME = "ben"
 DEFAULT_TEACHER_USERNAME = "dora"
+
 
 def demo_auto_login(request):
     """
     DEMO 用：不用帳密直接登入。
+    - 需設定環境變數 DEMO_AUTO_LOGIN=1 才會啟用
     - 預設自動登入學生 ben
     - ?as=teacher 可切換老師 dora
     - ?as=student 切回學生 ben
@@ -418,11 +428,19 @@ def demo_auto_login(request):
     # ✅ 免密碼登入要指定 backend
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
-def ensure_default_accounts_dev_only():
+
+def ensure_default_accounts():
+    """
+    ✅ 關鍵修正：
+    1) 不只 DEBUG，Render 也能用（用環境變數 DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1 開啟）
+    2) 就算 user 已存在，也會「確保密碼是正確的」(避免你以前測試留下舊密碼)
+    """
     global _DEFAULT_CREATED
     if _DEFAULT_CREATED:
         return
-    if not getattr(settings, "DEBUG", False):
+
+    allow = bool(getattr(settings, "DEBUG", False)) or DEMO_SEED_ACCOUNTS or DEMO_AUTO_LOGIN
+    if not allow:
         return
 
     User = get_user_model()
@@ -438,39 +456,56 @@ def ensure_default_accounts_dev_only():
         if not username:
             continue
 
-        user, created = User.objects.get_or_create(username=username)
-        if created:
+        user, _created = User.objects.get_or_create(username=username)
+
+        # ✅ 核心：就算不是 created，也強制確保密碼對
+        if not user.check_password(password):
             user.set_password(password)
-            user.save()
+
+        # 老師帳號：給 is_staff（你用 admin 身分判斷會更穩）
+        if item["role"] == "teacher":
+            if not user.is_staff:
+                user.is_staff = True
+
+        # 塞 first_name 方便顯示
+        if not safe_str(getattr(user, "first_name", "")):
+            display = safe_str(item.get("teacher_name") or item.get("student_name") or username)
+            user.first_name = display
+
+        user.save()
 
         if item["role"] == "teacher":
             teacher_name = safe_str(item.get("teacher_name")) or username
-            if not safe_str(getattr(user, "first_name", "")):
-                user.first_name = teacher_name
-                user.save()
 
+            # 先綁「同名但 user 空」的 Teacher
             t = Teacher.objects.filter(name_ch=teacher_name, user__isnull=True).first()
             if t:
                 t.user = user
-                t.save()
+                t.save(update_fields=["user"])
             else:
+                # 沒有就確保 user 有 Teacher
                 Teacher.objects.get_or_create(user=user, defaults={"name_ch": teacher_name})
+
+            # 保險：確保 name_ch 有值
+            Teacher.objects.filter(user=user).update(name_ch=teacher_name)
 
         elif item["role"] == "student":
             sid = safe_str(item.get("student_id")) or username
             sname = safe_str(item.get("student_name")) or username
-            if not safe_str(getattr(user, "first_name", "")):
-                user.first_name = sname
-                user.save()
 
             s = Student.objects.filter(student_id=sid).first()
             if s:
                 if getattr(s, "user_id", None) is None:
                     s.user = user
-                    s.save()
+                    s.save(update_fields=["user"])
             else:
-                # name 欄位不確定你 model 有沒有；保守只塞 student_id
-                Student.objects.get_or_create(user=user, defaults={"student_id": sid})
+                # 盡量填 student_id；name 欄位如果存在就填
+                obj, _ = Student.objects.get_or_create(user=user, defaults={"student_id": sid})
+                if hasattr(obj, "student_id") and not safe_str(getattr(obj, "student_id", "")):
+                    obj.student_id = sid
+                if hasattr(obj, "name") and not safe_str(getattr(obj, "name", "")):
+                    obj.name = sname
+                obj.save()
 
     _DEFAULT_CREATED = True
 
@@ -922,7 +957,7 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
             {
                 "ok": False,
                 "conflict": True,
-                "conflicts": conflicts,  # 统一回 slots e.g. ["3-4","3-5"]
+                "conflicts": conflicts,
                 "message": f"此課程與你的個人課表衝堂：{_format_conflicts(conflicts)}",
             },
             status=409,
@@ -930,18 +965,24 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
 
     ids.append(course_id)
     _set_personal_ids(request, ids)
-    return JsonResponse({"ok": True, "message": "已新增到個人課表。", "my_course_ids": ids, "warning": bool(conflicts), "conflicts": conflicts})
+    return JsonResponse(
+        {"ok": True, "message": "已新增到個人課表。", "my_course_ids": ids, "warning": bool(conflicts), "conflicts": conflicts}
+    )
 
 
 # ==============================
 # 主頁：課程查詢 + 登入 + 顯示
 # ==============================
 def course_query(request):
-    ensure_default_accounts_dev_only()
-    demo_auto_login(request)  
+    # ✅ 關鍵：不只 DEBUG；只要 DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1 也會建立/修正預設帳密
+    ensure_default_accounts()
+
+    # ✅ DEMO 一鍵登入（DEMO_AUTO_LOGIN=1 才啟用）
+    demo_auto_login(request)
+
     login_error = ""
 
-    # 0) 先處理「學生 AJAX：新增/移除個人課表」（新版 action）
+    # 0) 先處理「學生 AJAX：新增/移除個人課表」
     if request.method == "POST" and safe_str(request.POST.get("action")) in {"add_my_course", "remove_my_course"}:
         action = safe_str(request.POST.get("action"))
         course_id_raw = safe_str(request.POST.get("course_id"))
@@ -1522,7 +1563,6 @@ def backfill_classroom_from_excel(request):
 
 # ==============================
 # 舊網址相容：personal/ & personal/remove
-# （保留給 urls.py 用，但內部統一用同一套邏輯）
 # ==============================
 @require_POST
 def add_personal_course(request, course_id: int):
@@ -1543,16 +1583,27 @@ def remove_personal_course(request, course_id: int):
         return JsonResponse({"ok": False, "message": "course_id 格式錯誤。"}, status=400)
 
     return _handle_personal_action(request, "remove", cid, force=False)
+
+
+# ==============================
+# debug_db（建議只在 DEBUG 或 staff 使用）
+# ==============================
+@require_GET
 def debug_db(request):
-    return JsonResponse({
-        "course_total": Course.objects.count(),
-        "semester_distinct": list(
-            Course.objects.values_list("semester", flat=True).distinct().order_by("semester")[:50]
-        ),
-        "sample_3": list(
-            Course.objects.values("id", "semester", "course_name", "teacher", "day", "period")[:3]
-        ),
-        "excel_dir": str(EXCEL_DIR),
-        "excel_files": [p.name for p in sorted(EXCEL_DIR.glob("*.xlsx"))],
-        "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
-    })
+    if not getattr(settings, "DEBUG", False) and not (request.user.is_authenticated and request.user.is_staff):
+        return JsonResponse({"ok": False, "message": "Forbidden"}, status=403)
+
+    return JsonResponse(
+        {
+            "course_total": Course.objects.count(),
+            "semester_distinct": list(
+                Course.objects.values_list("semester", flat=True).distinct().order_by("semester")[:50]
+            ),
+            "sample_3": list(Course.objects.values("id", "semester", "course_name", "teacher", "day", "period")[:3]),
+            "excel_dir": str(EXCEL_DIR),
+            "excel_files": [p.name for p in sorted(EXCEL_DIR.glob("*.xlsx"))],
+            "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
+            "DEMO_AUTO_LOGIN": os.environ.get("DEMO_AUTO_LOGIN", "0"),
+            "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
+        }
+    )
