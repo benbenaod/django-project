@@ -4,7 +4,7 @@ from pathlib import Path
 import json
 import os
 from typing import Dict, Generator, Iterable, List, Optional, Tuple
-
+from django.contrib.auth import get_user_model, login
 from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth import authenticate, get_user_model, login, logout, update_session_auth_hash
@@ -385,6 +385,38 @@ def is_student_user(request) -> bool:
 # ==============================
 _DEFAULT_CREATED = False
 
+
+
+DEMO_AUTO_LOGIN = os.environ.get("DEMO_AUTO_LOGIN", "0") == "1"
+DEFAULT_STUDENT_USERNAME = "ben"
+DEFAULT_TEACHER_USERNAME = "dora"
+
+def demo_auto_login(request):
+    """
+    DEMO 用：不用帳密直接登入。
+    - 預設自動登入學生 ben
+    - ?as=teacher 可切換老師 dora
+    - ?as=student 切回學生 ben
+    """
+    if not DEMO_AUTO_LOGIN:
+        return
+    if request.user.is_authenticated:
+        return
+
+    as_role = safe_str(request.GET.get("as"))  # student / teacher
+    username = DEFAULT_STUDENT_USERNAME
+    if as_role == "teacher":
+        username = DEFAULT_TEACHER_USERNAME
+    elif as_role == "student":
+        username = DEFAULT_STUDENT_USERNAME
+
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return
+
+    # ✅ 免密碼登入要指定 backend
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
 
 def ensure_default_accounts_dev_only():
     global _DEFAULT_CREATED
@@ -906,7 +938,7 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
 # ==============================
 def course_query(request):
     ensure_default_accounts_dev_only()
-
+    demo_auto_login(request)  
     login_error = ""
 
     # 0) 先處理「學生 AJAX：新增/移除個人課表」（新版 action）
