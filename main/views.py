@@ -361,11 +361,16 @@ def apply_system_filter(qs, system_value: str):
 
 
 # ==============================
-# 權限/身分 helpers
+# 權限/身分 helpers（✅ 一鍵登入/正常登入都能用的版本）
 # ==============================
 def get_user_display_name(user) -> Tuple[str, str]:
     if not user or not getattr(user, "is_authenticated", False):
         return "", ""
+
+    # ✅ 超關鍵：staff/superuser 一律視為老師，避免 Teacher 沒綁 user 導致「登入了但不能用」
+    if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
+        name = safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", ""))
+        return "老師", name
 
     t = Teacher.objects.filter(user=user).first()
     if t:
@@ -379,7 +384,7 @@ def get_user_display_name(user) -> Tuple[str, str]:
     s = Student.objects.filter(user=user).first()
     if s:
         name = (
-            safe_str(getattr(s, "name", ""))  # 你的 Student 可能有 name
+            safe_str(getattr(s, "name", ""))
             or safe_str(getattr(user, "first_name", ""))
             or safe_str(getattr(user, "username", ""))
         )
@@ -393,12 +398,58 @@ def get_user_display_name(user) -> Tuple[str, str]:
 
 
 def is_teacher_admin(request) -> bool:
-    role_name, _ = get_user_display_name(request.user)
-    return bool(request.user.is_authenticated and role_name == "老師")
+    if not request.user.is_authenticated:
+        return False
+    # ✅ staff/superuser 直接當老師
+    if request.user.is_staff or request.user.is_superuser:
+        return True
+    return Teacher.objects.filter(user=request.user).exists()
 
 
 def is_student_user(request) -> bool:
     return bool(request.user.is_authenticated and Student.objects.filter(user=request.user).exists())
+
+
+def ensure_role_profile(user, role: str):
+    """
+    ✅ 關鍵：登入成功後，如果 Teacher/Student 沒綁 user，就自動補齊
+    role: "student" / "admin"
+    """
+    role = safe_str(role)
+
+    if role == "student":
+        if Student.objects.filter(user=user).exists():
+            return
+
+        sid = safe_str(getattr(user, "username", "")) or "demo"
+        try:
+            obj = Student.objects.create(user=user, student_id=sid)
+        except Exception:
+            # 如果你的 Student model 沒有 student_id 或有其他限制，就退到最小建立
+            obj = Student.objects.create(user=user)
+
+        if hasattr(obj, "name") and not safe_str(getattr(obj, "name", "")):
+            obj.name = safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", ""))
+            try:
+                obj.save(update_fields=["name"])
+            except Exception:
+                obj.save()
+        return
+
+    if role == "admin":
+        if not (user.is_staff or user.is_superuser):
+            user.is_staff = True
+            user.save(update_fields=["is_staff"])
+
+        if Teacher.objects.filter(user=user).exists():
+            return
+
+        tname = safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", "")) or "老師"
+        try:
+            Teacher.objects.create(user=user, name_ch=tname)
+        except Exception:
+            Teacher.objects.create(user=user)
+        return
 
 
 # ==============================
@@ -408,10 +459,6 @@ _DEFAULT_CREATED = False
 
 DEMO_AUTO_LOGIN = os.environ.get("DEMO_AUTO_LOGIN", "0") == "1"
 DEMO_SEED_ACCOUNTS = os.environ.get("DEMO_SEED_ACCOUNTS", "0") == "1"
-
-# ✅ 建議 Render 設定 DEMO_TOKEN，避免公開網址被亂登入
-DEMO_TOKEN = safe_str(os.environ.get("DEMO_TOKEN", "")).strip()
-
 DEFAULT_STUDENT_USERNAME = "ben"
 DEFAULT_TEACHER_USERNAME = "dora"
 
@@ -431,15 +478,22 @@ def demo_auto_login(request):
 
     as_role = safe_str(request.GET.get("as"))  # student / teacher
     username = DEFAULT_STUDENT_USERNAME
+    role_for_profile = "student"
+
     if as_role == "teacher":
         username = DEFAULT_TEACHER_USERNAME
+        role_for_profile = "admin"
     elif as_role == "student":
         username = DEFAULT_STUDENT_USERNAME
+        role_for_profile = "student"
 
     User = get_user_model()
     user = User.objects.filter(username=username).first()
     if not user:
         return
+
+    # ✅ 補齊身分資料，避免「登入了但功能不能用」
+    ensure_role_profile(user, role_for_profile)
 
     # ✅ 免密碼登入要指定 backend
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
@@ -499,10 +553,8 @@ def ensure_default_accounts():
                 t.user = user
                 t.save(update_fields=["user"])
             else:
-                # 沒有就確保 user 有 Teacher
                 Teacher.objects.get_or_create(user=user, defaults={"name_ch": teacher_name})
 
-            # 保險：確保 name_ch 有值
             Teacher.objects.filter(user=user).update(name_ch=teacher_name)
 
         elif item["role"] == "student":
@@ -515,7 +567,6 @@ def ensure_default_accounts():
                     s.user = user
                     s.save(update_fields=["user"])
             else:
-                # 盡量填 student_id；name 欄位如果存在就填
                 obj, _ = Student.objects.get_or_create(user=user, defaults={"student_id": sid})
                 if hasattr(obj, "student_id") and not safe_str(getattr(obj, "student_id", "")):
                     obj.student_id = sid
@@ -524,72 +575,6 @@ def ensure_default_accounts():
                 obj.save()
 
     _DEFAULT_CREATED = True
-
-
-# ✅ 一鍵登入/登出：token 保護 + 專用路由
-def _demo_allowed(request) -> bool:
-    """
-    允許 DEMO 一鍵登入的條件：
-    - DEBUG=True 時允許
-    - 或 DEMO_AUTO_LOGIN=1 / DEMO_SEED_ACCOUNTS=1 時允許
-    - 若設定了 DEMO_TOKEN，必須帶 ?token=xxx 才允許（強烈建議 Render 用這個）
-    """
-    allow = bool(getattr(settings, "DEBUG", False)) or DEMO_AUTO_LOGIN or DEMO_SEED_ACCOUNTS
-    if not allow:
-        return False
-
-    if DEMO_TOKEN:
-        token_in = safe_str(request.GET.get("token"))
-        return token_in == DEMO_TOKEN
-
-    return True
-
-
-@require_GET
-def demo_login_view(request):
-    """
-    ✅ 一鍵登入入口
-    用法：
-      /demo-login/?as=student
-      /demo-login/?as=teacher
-    若 Render 設 DEMO_TOKEN：
-      /demo-login/?as=teacher&token=你的token
-    """
-    if not _demo_allowed(request):
-        return HttpResponse("Not Found", status=404)
-
-    # 確保 demo 帳號存在 + 密碼正確 + Teacher/Student 綁定完成
-    ensure_default_accounts()
-
-    as_role = safe_str(request.GET.get("as")) or "student"  # student / teacher
-    username = DEFAULT_STUDENT_USERNAME if as_role != "teacher" else DEFAULT_TEACHER_USERNAME
-
-    User = get_user_model()
-    user = User.objects.filter(username=username).first()
-    if not user:
-        return HttpResponse("Demo user not found", status=404)
-
-    # ✅ 切換身分：先登出再登入，避免 session 混亂
-    if request.user.is_authenticated:
-        logout(request)
-
-    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
-
-    next_url = safe_str(request.GET.get("next"))
-    return redirect(next_url or "course_query")
-
-
-@require_GET
-def demo_logout_view(request):
-    """
-    ✅ 一鍵登出：/demo-logout/
-    若 Render 設 DEMO_TOKEN：/demo-logout/?token=xxx
-    """
-    if not _demo_allowed(request):
-        return HttpResponse("Not Found", status=404)
-
-    logout(request)
-    return redirect("course_query")
 
 
 # ==============================
@@ -1053,13 +1038,7 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
     ids.append(course_id)
     _set_personal_ids(request, ids)
     return JsonResponse(
-        {
-            "ok": True,
-            "message": "已新增到個人課表。",
-            "my_course_ids": ids,
-            "warning": bool(conflicts),
-            "conflicts": conflicts,
-        }
+        {"ok": True, "message": "已新增到個人課表。", "my_course_ids": ids, "warning": bool(conflicts), "conflicts": conflicts}
     )
 
 
@@ -1067,10 +1046,11 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
 # 主頁：課程查詢 + 登入 + 顯示
 # ==============================
 def course_query(request):
+    # ✅ 先補齊 demo 帳號（Render 也能用：DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1）
     ensure_default_accounts()
 
-    # ✅ 一鍵登入版本：不要每次進首頁就自動登入（避免變成「自動登入」而不是「一鍵登入」）
-    # demo_auto_login(request)
+    # ✅ DEMO 一鍵登入（DEMO_AUTO_LOGIN=1 才啟用；並且會補齊 Teacher/Student）
+    demo_auto_login(request)
 
     login_error = ""
 
@@ -1102,15 +1082,16 @@ def course_query(request):
             else:
                 ok = True
                 if role_in == "student":
-                    if Student.objects.filter(user=user).first() is None:
-                        ok = False
-                        login_error = "此帳號不是學生身分"
+                    # ✅ 這裡不再卡死「一定要先有 Student」，登入成功後會自動補齊
+                    ok = True
                 elif role_in == "admin":
-                    if not (user.is_staff or user.is_superuser or Teacher.objects.filter(user=user).exists()):
-                        ok = False
-                        login_error = "此帳號不是管理員/老師身分"
+                    # ✅ 只要是 staff/superuser 或 Teacher 存在就行；登入後也會自動補 Teacher
+                    ok = True
 
                 if ok:
+                    # ✅ 超關鍵：登入前先補齊 Teacher/Student 綁定，避免「登入了但功能不能用」
+                    ensure_role_profile(user, role_in)
+
                     login(request, user)
                     return redirect("course_query")
 
@@ -1716,6 +1697,5 @@ def debug_db(request):
             "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
             "DEMO_AUTO_LOGIN": os.environ.get("DEMO_AUTO_LOGIN", "0"),
             "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
-            "DEMO_TOKEN": os.environ.get("DEMO_TOKEN", ""),
         }
     )
