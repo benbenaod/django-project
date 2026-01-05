@@ -24,6 +24,5 @@ path("personal/remove/<int:course_id>/", views.remove_personal_course, name="rem
 
 path("teacher-info/", views.teacher_info, name="teacher_info"),
 path("debug_db/", views.debug_db, name="debug_db"),
-path("demo-logout/", views.demo_logout_view, name="demo_logout"),
 path("demo-login/", views.demo_login_view, name="demo_login_view"),
 ]
