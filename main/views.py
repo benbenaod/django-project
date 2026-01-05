@@ -1699,7 +1699,7 @@ def debug_db(request):
             "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
         }
     )
-    @require_GET
+@require_GET
 def demo_login_view(request):
     """
     ✅ 給 urls.py 用的 demo login endpoint
