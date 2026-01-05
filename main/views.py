@@ -1699,3 +1699,43 @@ def debug_db(request):
             "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
         }
     )
+    @require_GET
+def demo_login_view(request):
+    """
+    ✅ 給 urls.py 用的 demo login endpoint
+    - /demo-login/              -> 登入學生 ben
+    - /demo-login/?as=teacher   -> 登入老師 dora
+    - /demo-login/?logout=1     -> 登出
+    """
+    ensure_default_accounts()
+
+    if safe_str(request.GET.get("logout")) == "1":
+        logout(request)
+        return redirect("course_query")
+
+    if request.user.is_authenticated:
+        return redirect("course_query")
+
+    as_role = safe_str(request.GET.get("as"))  # "teacher" or "student"
+    if as_role == "teacher":
+        username = DEFAULT_TEACHER_USERNAME
+        role_for_profile = "admin"
+    else:
+        username = DEFAULT_STUDENT_USERNAME
+        role_for_profile = "student"
+
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return HttpResponse(
+            f"找不到 DEMO 帳號：{username}。請確認已開啟 DEMO_SEED_ACCOUNTS=1 或 DEBUG=True。",
+            status=404,
+        )
+
+    # ✅ 補齊 Teacher/Student 綁定，避免登入後功能不能用
+    ensure_role_profile(user, role_for_profile)
+
+    # ✅ 指定 backend 以支援免密碼登入
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return redirect("course_query")
+
