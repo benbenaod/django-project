@@ -161,6 +161,18 @@ def room_display(c: Course) -> str:
     return v or "-"
 
 
+def building_url_from_room(room: str) -> str:
+    """
+    依教室字串推測大樓：如 F308 / S210 / B101 / G... 的第一碼
+    回傳對應 BUILDING_URL_MAP，找不到回傳空字串
+    """
+    r = safe_str(room).strip()
+    if not r or r == "-":
+        return ""
+    key = r.strip().upper()[:1]
+    return safe_str(BUILDING_URL_MAP.get(key, ""))
+
+
 # ==============================
 # Teacher meta：中文姓名 / 類別 / 分機
 # ==============================
@@ -396,6 +408,10 @@ _DEFAULT_CREATED = False
 
 DEMO_AUTO_LOGIN = os.environ.get("DEMO_AUTO_LOGIN", "0") == "1"
 DEMO_SEED_ACCOUNTS = os.environ.get("DEMO_SEED_ACCOUNTS", "0") == "1"
+
+# ✅ 建議 Render 設定 DEMO_TOKEN，避免公開網址被亂登入
+DEMO_TOKEN = safe_str(os.environ.get("DEMO_TOKEN", "")).strip()
+
 DEFAULT_STUDENT_USERNAME = "ben"
 DEFAULT_TEACHER_USERNAME = "dora"
 
@@ -508,6 +524,72 @@ def ensure_default_accounts():
                 obj.save()
 
     _DEFAULT_CREATED = True
+
+
+# ✅ 一鍵登入/登出：token 保護 + 專用路由
+def _demo_allowed(request) -> bool:
+    """
+    允許 DEMO 一鍵登入的條件：
+    - DEBUG=True 時允許
+    - 或 DEMO_AUTO_LOGIN=1 / DEMO_SEED_ACCOUNTS=1 時允許
+    - 若設定了 DEMO_TOKEN，必須帶 ?token=xxx 才允許（強烈建議 Render 用這個）
+    """
+    allow = bool(getattr(settings, "DEBUG", False)) or DEMO_AUTO_LOGIN or DEMO_SEED_ACCOUNTS
+    if not allow:
+        return False
+
+    if DEMO_TOKEN:
+        token_in = safe_str(request.GET.get("token"))
+        return token_in == DEMO_TOKEN
+
+    return True
+
+
+@require_GET
+def demo_login_view(request):
+    """
+    ✅ 一鍵登入入口
+    用法：
+      /demo-login/?as=student
+      /demo-login/?as=teacher
+    若 Render 設 DEMO_TOKEN：
+      /demo-login/?as=teacher&token=你的token
+    """
+    if not _demo_allowed(request):
+        return HttpResponse("Not Found", status=404)
+
+    # 確保 demo 帳號存在 + 密碼正確 + Teacher/Student 綁定完成
+    ensure_default_accounts()
+
+    as_role = safe_str(request.GET.get("as")) or "student"  # student / teacher
+    username = DEFAULT_STUDENT_USERNAME if as_role != "teacher" else DEFAULT_TEACHER_USERNAME
+
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return HttpResponse("Demo user not found", status=404)
+
+    # ✅ 切換身分：先登出再登入，避免 session 混亂
+    if request.user.is_authenticated:
+        logout(request)
+
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+
+    next_url = safe_str(request.GET.get("next"))
+    return redirect(next_url or "course_query")
+
+
+@require_GET
+def demo_logout_view(request):
+    """
+    ✅ 一鍵登出：/demo-logout/
+    若 Render 設 DEMO_TOKEN：/demo-logout/?token=xxx
+    """
+    if not _demo_allowed(request):
+        return HttpResponse("Not Found", status=404)
+
+    logout(request)
+    return redirect("course_query")
 
 
 # ==============================
@@ -818,12 +900,16 @@ def build_grid_timetable_html(courses, *, title: str) -> str:
             parts = []
             for c in cell_courses:
                 week = safe_str(getattr(c, "week_info", ""))
-                time_text = f"星期{day_label} 第{safe_str(getattr(c, 'period', ''))}節"
+
+                # ✅ 修正：data-time 一定要包含數字星期，給前端 parseTimeSlots 用
+                period_text = safe_str(getattr(c, "period", ""))
+                time_text = f"星期{day_val} 第{period_text}節（星期{day_label}）"
                 if week:
                     time_text += f"（{week}）"
 
                 t_ch, t_cat, t_ext = teacher_meta_for_course(c)
                 room_txt = room_display(c)
+                room_url = building_url_from_room(room_txt)
 
                 parts.append(
                     (
@@ -836,6 +922,7 @@ def build_grid_timetable_html(courses, *, title: str) -> str:
                         f'data-teacher-category="{esc(t_cat)}" '
                         f'data-teacher-ext="{esc(t_ext)}" '
                         f'data-room="{esc(room_txt)}" '
+                        f'data-room-url="{esc(room_url)}" '
                         f'data-time="{esc(time_text)}" '
                         f'data-week="{esc(week)}" '
                         f'data-code="{esc(getattr(c, "course_code", ""))}" '
@@ -966,7 +1053,13 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
     ids.append(course_id)
     _set_personal_ids(request, ids)
     return JsonResponse(
-        {"ok": True, "message": "已新增到個人課表。", "my_course_ids": ids, "warning": bool(conflicts), "conflicts": conflicts}
+        {
+            "ok": True,
+            "message": "已新增到個人課表。",
+            "my_course_ids": ids,
+            "warning": bool(conflicts),
+            "conflicts": conflicts,
+        }
     )
 
 
@@ -974,11 +1067,10 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
 # 主頁：課程查詢 + 登入 + 顯示
 # ==============================
 def course_query(request):
-    # ✅ 關鍵：不只 DEBUG；只要 DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1 也會建立/修正預設帳密
     ensure_default_accounts()
 
-    # ✅ DEMO 一鍵登入（DEMO_AUTO_LOGIN=1 才啟用）
-    demo_auto_login(request)
+    # ✅ 一鍵登入版本：不要每次進首頁就自動登入（避免變成「自動登入」而不是「一鍵登入」）
+    # demo_auto_login(request)
 
     login_error = ""
 
@@ -1232,16 +1324,24 @@ def course_query(request):
 
                     for c in courses_sorted:
                         dept_name = dept_display(c.department_code)
-                        day_ch = day_map.get(norm(c.day), norm(c.day) or "-")
+                        day_num = norm(c.day) or "-"
+                        day_ch = day_map.get(day_num, day_num)
                         period_str = norm(c.period) or "-"
                         week_info = norm(c.week_info)
 
-                        time_text = f"星期{day_ch} 第{period_str}節"
+                        # ✅ 顯示用（中文）
+                        time_text_display = f"星期{day_ch} 第{period_str}節"
                         if week_info:
-                            time_text += f"（{week_info}）"
+                            time_text_display += f"（{week_info}）"
+
+                        # ✅ data-time 用（一定包含數字星期）
+                        time_text_data = f"星期{day_num} 第{period_str}節（星期{day_ch}）"
+                        if week_info:
+                            time_text_data += f"（{week_info}）"
 
                         t_ch, t_cat, t_ext = teacher_meta_for_course(c)
                         room_txt = room_display(c)
+                        room_url = building_url_from_room(room_txt)
 
                         name_html = (
                             f'<span class="course-clickable" '
@@ -1253,7 +1353,8 @@ def course_query(request):
                             f'data-teacher-category="{esc(t_cat)}" '
                             f'data-teacher-ext="{esc(t_ext)}" '
                             f'data-room="{esc(room_txt)}" '
-                            f'data-time="{esc(time_text)}" '
+                            f'data-room-url="{esc(room_url)}" '
+                            f'data-time="{esc(time_text_data)}" '
                             f'data-week="{esc(c.week_info)}" '
                             f'data-code="{esc(c.course_code)}" '
                             f'data-summary="{esc(c.course_summary_ch)}" '
@@ -1267,7 +1368,7 @@ def course_query(request):
                             f"<td>{name_html}</td>"
                             f"<td>{esc(c.teacher) or '-'}</td>"
                             f"<td>{esc(room_txt)}</td>"
-                            f"<td>{esc(time_text)}</td>"
+                            f"<td>{esc(time_text_display)}</td>"
                             "</tr>"
                         )
 
@@ -1306,12 +1407,17 @@ def course_query(request):
                             if len(courses_in_cell) <= 2:
                                 parts = []
                                 for c in courses_in_cell:
-                                    time_text = f"星期{day_label} 第{esc(c.period) or '-'}節"
-                                    if norm(c.week_info):
-                                        time_text += f"（{esc(c.week_info)}）"
+                                    period_str = norm(c.period) or "-"
+                                    week_info = norm(c.week_info)
+
+                                    # ✅ data-time：含數字星期
+                                    time_text = f"星期{day_val} 第{period_str}節（星期{day_label}）"
+                                    if week_info:
+                                        time_text += f"（{week_info}）"
 
                                     t_ch, t_cat, t_ext = teacher_meta_for_course(c)
                                     room_txt = room_display(c)
+                                    room_url = building_url_from_room(room_txt)
 
                                     parts.append(
                                         (
@@ -1324,6 +1430,7 @@ def course_query(request):
                                             f'data-teacher-category="{esc(t_cat)}" '
                                             f'data-teacher-ext="{esc(t_ext)}" '
                                             f'data-room="{esc(room_txt)}" '
+                                            f'data-room-url="{esc(room_url)}" '
                                             f'data-time="{esc(time_text)}" '
                                             f'data-week="{esc(c.week_info)}" '
                                             f'data-code="{esc(c.course_code)}" '
@@ -1358,10 +1465,15 @@ def course_query(request):
 
                                 t_ch, t_cat, t_ext = teacher_meta_for_course(c)
                                 room_txt = room_display(c)
+                                room_url = building_url_from_room(room_txt)
 
-                                time_text = f"星期{day_label} 第{norm(getattr(c, 'period', '')) or '-'}節"
-                                if norm(c.week_info):
-                                    time_text += f"（{norm(c.week_info)}）"
+                                period_str = norm(getattr(c, "period", "")) or "-"
+                                week_info = norm(c.week_info)
+
+                                # ✅ data-time：含數字星期
+                                time_text = f"星期{day_val} 第{period_str}節（星期{day_label}）"
+                                if week_info:
+                                    time_text += f"（{week_info}）"
 
                                 select_html += (
                                     f'<option value="{idx}" {selected} title="{esc(cname)}" '
@@ -1373,6 +1485,7 @@ def course_query(request):
                                     f'data-teacher-category="{esc(t_cat)}" '
                                     f'data-teacher-ext="{esc(t_ext)}" '
                                     f'data-room="{esc(room_txt)}" '
+                                    f'data-room-url="{esc(room_url)}" '
                                     f'data-time="{esc(time_text)}" '
                                     f'data-week="{esc(c.week_info)}" '
                                     f'data-code="{esc(c.course_code)}" '
@@ -1427,8 +1540,6 @@ def course_query(request):
 
 # ==============================
 # Excel 匯入工具（安全版）
-# 預設：只允許老師/管理員，且用 POST
-# DEBUG 下允許 GET（方便你測試）
 # ==============================
 def _allow_import_via_get() -> bool:
     return bool(getattr(settings, "DEBUG", False))
@@ -1605,5 +1716,6 @@ def debug_db(request):
             "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
             "DEMO_AUTO_LOGIN": os.environ.get("DEMO_AUTO_LOGIN", "0"),
             "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
+            "DEMO_TOKEN": os.environ.get("DEMO_TOKEN", ""),
         }
     )
