@@ -294,7 +294,7 @@
         .detail-value{ color:#111827; }
         .detail-divider{ border-top:1px solid #e5e7eb; margin:14px 0; }
         .detail-subtitle{ font-size:14px; font-weight:700; color:#111827; margin-bottom:8px; }
-        .detail-summary{ white-space:pre-wrap; font-size:14px; color:#374151; line-height:1.6; }
+        .detail-summary{ white-space:pre-wrap; font-size:14px; color: #374151; line-height:1.6; }
 
         .teacher-link{
             border:none;
@@ -455,11 +455,23 @@
             const m = document.getElementById("loginModal");
             if (m) m.style.display = "none";
         }
+
+        // ✅ 改：選身分就直接「免帳密登入」
         function selectRole(role) {
-            const roleInput = document.getElementById("loginRoleInput");
-            if (roleInput) roleInput.value = role;
+            // 直接送出 quick_login，不開帳密輸入
+            const f = document.getElementById("quickLoginForm");
+            const inp = document.getElementById("quickLoginInput");
+            if(!f || !inp){
+                // fallback：如果找不到表單，就退回原本流程
+                const roleInput = document.getElementById("loginRoleInput");
+                if (roleInput) roleInput.value = role;
+                closeRoleModal();
+                openLoginModalOnly();
+                return;
+            }
+            inp.value = role; // student / admin
             closeRoleModal();
-            openLoginModalOnly();
+            f.submit();
         }
 
         function openProfileModal() {
@@ -1325,7 +1337,7 @@
                                 </td>
                                 <td>
                                     <form method="post" action="{% url 'delete_course' c.id %}" style="margin:0;"
-                                          onsubmit="return confirm('確定要刪除【{{ c.course_name }}】嗎？');">
+                                          onsubmit="return confirm('確定要刪除嗎？');">
                                         {% csrf_token %}
                                         <button class="btn btn-danger" type="submit">刪除</button>
                                     </form>
@@ -1527,7 +1539,13 @@
 {% endif %}
 {% endif %}
 
-<!-- 登入 -->
+<!-- ✅ 一鍵登入用隱藏表單（給 selectRole() submit） -->
+<form id="quickLoginForm" method="post" action="" style="display:none;">
+    {% csrf_token %}
+    <input type="hidden" name="quick_login" id="quickLoginInput" value="">
+</form>
+
+<!-- 登入（保留：如果你之後想恢復帳密登入還能用） -->
 <div class="modal-bg" id="loginModal">
     <div class="modal">
         <div class="modal-title">登入系統</div>
