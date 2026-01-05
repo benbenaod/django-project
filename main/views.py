@@ -1738,4 +1738,9 @@ def demo_login_view(request):
     # ✅ 指定 backend 以支援免密碼登入
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("course_query")
+@require_GET
+def demo_logout_view(request):
+    """DEMO 登出（給 urls.py 用）"""
+    logout(request)
+    return redirect("course_query")
 
