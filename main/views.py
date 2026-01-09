@@ -367,7 +367,7 @@ def get_user_display_name(user) -> Tuple[str, str]:
     if not user or not getattr(user, "is_authenticated", False):
         return "", ""
 
-    # ✅ 超關鍵：staff/superuser 一律視為老師，避免 Teacher 沒綁 user 導致「登入了但不能用」
+    # ✅ 超關鍵：staff/superuser 一律視為老師
     if getattr(user, "is_superuser", False) or getattr(user, "is_staff", False):
         name = safe_str(getattr(user, "first_name", "")) or safe_str(getattr(user, "username", ""))
         return "老師", name
@@ -425,7 +425,6 @@ def ensure_role_profile(user, role: str):
         try:
             obj = Student.objects.create(user=user, student_id=sid)
         except Exception:
-            # 如果你的 Student model 沒有 student_id 或有其他限制，就退到最小建立
             obj = Student.objects.create(user=user)
 
         if hasattr(obj, "name") and not safe_str(getattr(obj, "name", "")):
@@ -459,8 +458,17 @@ _DEFAULT_CREATED = False
 
 DEMO_AUTO_LOGIN = os.environ.get("DEMO_AUTO_LOGIN", "0") == "1"
 DEMO_SEED_ACCOUNTS = os.environ.get("DEMO_SEED_ACCOUNTS", "0") == "1"
+
+# ✅ 新增：給你「選身分就免帳密登入」用（Render/Production 想開再開）
+DEMO_QUICK_LOGIN = os.environ.get("DEMO_QUICK_LOGIN", "0") == "1"
+
 DEFAULT_STUDENT_USERNAME = "ben"
 DEFAULT_TEACHER_USERNAME = "dora"
+
+
+def _allow_demo_features() -> bool:
+    """是否允許 demo/一鍵登入/自動建立帳號（DEBUG 或環境變數開啟）"""
+    return bool(getattr(settings, "DEBUG", False)) or DEMO_SEED_ACCOUNTS or DEMO_AUTO_LOGIN or DEMO_QUICK_LOGIN
 
 
 def demo_auto_login(request):
@@ -502,14 +510,14 @@ def demo_auto_login(request):
 def ensure_default_accounts():
     """
     ✅ 關鍵修正：
-    1) 不只 DEBUG，Render 也能用（用環境變數 DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1 開啟）
-    2) 就算 user 已存在，也會「確保密碼是正確的」(避免你以前測試留下舊密碼)
+    1) 不只 DEBUG，Render 也能用（用環境變數 DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1 或 DEMO_QUICK_LOGIN=1）
+    2) 就算 user 已存在，也會「確保密碼是正確的」
     """
     global _DEFAULT_CREATED
     if _DEFAULT_CREATED:
         return
 
-    allow = bool(getattr(settings, "DEBUG", False)) or DEMO_SEED_ACCOUNTS or DEMO_AUTO_LOGIN
+    allow = _allow_demo_features()
     if not allow:
         return
 
@@ -532,7 +540,7 @@ def ensure_default_accounts():
         if not user.check_password(password):
             user.set_password(password)
 
-        # 老師帳號：給 is_staff（你用 admin 身分判斷會更穩）
+        # 老師帳號：給 is_staff
         if item["role"] == "teacher":
             if not user.is_staff:
                 user.is_staff = True
@@ -575,6 +583,34 @@ def ensure_default_accounts():
                 obj.save()
 
     _DEFAULT_CREATED = True
+
+
+def quick_login_by_role(request, role_in: str) -> Tuple[bool, str]:
+    """
+    ✅ 給前端 quickLoginForm 用：
+    - role_in: "admin" / "student"
+    - 會直接登入預設帳號（dora / ben）
+    - 只有在 DEBUG 或 DEMO_* 環境變數開啟時允許
+    """
+    role_in = safe_str(role_in)
+    if role_in not in {"admin", "student"}:
+        return False, "role 不正確"
+
+    if not _allow_demo_features():
+        return False, "此一鍵登入功能未開啟（請在 Render 設 DEMO_QUICK_LOGIN=1 或 DEMO_SEED_ACCOUNTS=1）"
+
+    # 確保 demo 帳號存在
+    ensure_default_accounts()
+
+    username = DEFAULT_TEACHER_USERNAME if role_in == "admin" else DEFAULT_STUDENT_USERNAME
+    User = get_user_model()
+    user = User.objects.filter(username=username).first()
+    if not user:
+        return False, f"找不到 DEMO 帳號：{username}"
+
+    ensure_role_profile(user, role_in)
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+    return True, ""
 
 
 # ==============================
@@ -886,7 +922,7 @@ def build_grid_timetable_html(courses, *, title: str) -> str:
             for c in cell_courses:
                 week = safe_str(getattr(c, "week_info", ""))
 
-                # ✅ 修正：data-time 一定要包含數字星期，給前端 parseTimeSlots 用
+                # ✅ 修正：data-time 一定要包含數字星期
                 period_text = safe_str(getattr(c, "period", ""))
                 time_text = f"星期{day_val} 第{period_text}節（星期{day_label}）"
                 if week:
@@ -1046,10 +1082,10 @@ def _handle_personal_action(request, action: str, course_id: int, force: bool = 
 # 主頁：課程查詢 + 登入 + 顯示
 # ==============================
 def course_query(request):
-    # ✅ 先補齊 demo 帳號（Render 也能用：DEMO_SEED_ACCOUNTS=1 或 DEMO_AUTO_LOGIN=1）
+    # ✅ 先補齊 demo 帳號（Render 也能用：DEMO_SEED_ACCOUNTS=1 / DEMO_AUTO_LOGIN=1 / DEMO_QUICK_LOGIN=1）
     ensure_default_accounts()
 
-    # ✅ DEMO 一鍵登入（DEMO_AUTO_LOGIN=1 才啟用；並且會補齊 Teacher/Student）
+    # ✅ DEMO 一鍵登入（DEMO_AUTO_LOGIN=1 才啟用）
     demo_auto_login(request)
 
     login_error = ""
@@ -1069,7 +1105,20 @@ def course_query(request):
             return _handle_personal_action(request, "remove", course_id, force=force)
         return _handle_personal_action(request, "add", course_id, force=force)
 
-    # 1) 再處理「登入（POST）」：必須 username/password/role 都有效才視為登入
+    # ✅ 1) 先處理「免帳密一鍵登入」（你前端 quickLoginForm 只送 role）
+    if request.method == "POST":
+        username_in = safe_str(request.POST.get("username"))
+        password_in = request.POST.get("password") or ""
+        role_in = safe_str(request.POST.get("role") or request.POST.get("quick_role"))
+
+        has_creds = bool(username_in and password_in)
+        if (not has_creds) and role_in in {"admin", "student"}:
+            ok, msg = quick_login_by_role(request, role_in)
+            if ok:
+                return redirect("course_query")
+            login_error = msg or "一鍵登入失敗"
+
+    # 2) 再處理「正常登入（POST）」：username/password/role 都有效才視為登入
     if request.method == "POST":
         username_in = safe_str(request.POST.get("username"))
         password_in = request.POST.get("password") or ""
@@ -1080,20 +1129,10 @@ def course_query(request):
             if user is None:
                 login_error = "帳號或密碼錯誤"
             else:
-                ok = True
-                if role_in == "student":
-                    # ✅ 這裡不再卡死「一定要先有 Student」，登入成功後會自動補齊
-                    ok = True
-                elif role_in == "admin":
-                    # ✅ 只要是 staff/superuser 或 Teacher 存在就行；登入後也會自動補 Teacher
-                    ok = True
-
-                if ok:
-                    # ✅ 超關鍵：登入前先補齊 Teacher/Student 綁定，避免「登入了但功能不能用」
-                    ensure_role_profile(user, role_in)
-
-                    login(request, user)
-                    return redirect("course_query")
+                # ✅ 登入前先補 Teacher/Student 綁定
+                ensure_role_profile(user, role_in)
+                login(request, user)
+                return redirect("course_query")
 
     ensure_courses_loaded()
 
@@ -1153,6 +1192,22 @@ def course_query(request):
 
     total_count = Course.objects.count()
 
+    # ✅ profile modal 用（避免模板拿不到 student_name/student_id）
+    student_obj = None
+    student_name = ""
+    student_class = ""
+    student_id = ""
+    if request.user.is_authenticated:
+        student_obj = Student.objects.filter(user=request.user).first()
+        if student_obj:
+            student_name = safe_str(getattr(student_obj, "name", "")) or display_name
+            student_id = safe_str(getattr(student_obj, "student_id", "")) or safe_str(getattr(request.user, "username", ""))
+            student_class = (
+                safe_str(getattr(student_obj, "class_name", ""))
+                or safe_str(getattr(student_obj, "class_group", ""))
+                or safe_str(getattr(student_obj, "clazz", ""))
+            )
+
     # 個人課表（學生）
     personal_timetable_html = ""
     my_course_ids: List[int] = []
@@ -1207,6 +1262,11 @@ def course_query(request):
             "my_course_ids": my_course_ids,
             "current_full_path": request.get_full_path(),
             "building_url_map": json.dumps(BUILDING_URL_MAP),
+
+            # ✅ profile modal
+            "student_name": student_name,
+            "student_class": student_class,
+            "student_id": student_id,
         }
         return render(request, "main/course_query.html", context)
 
@@ -1515,6 +1575,11 @@ def course_query(request):
         "my_course_ids": my_course_ids,
         "current_full_path": request.get_full_path(),
         "building_url_map": json.dumps(BUILDING_URL_MAP),
+
+        # ✅ profile modal
+        "student_name": student_name,
+        "student_class": student_class,
+        "student_id": student_id,
     }
     return render(request, "main/course_query.html", context)
 
@@ -1697,8 +1762,11 @@ def debug_db(request):
             "AUTO_IMPORT": os.environ.get("AUTO_IMPORT", "0"),
             "DEMO_AUTO_LOGIN": os.environ.get("DEMO_AUTO_LOGIN", "0"),
             "DEMO_SEED_ACCOUNTS": os.environ.get("DEMO_SEED_ACCOUNTS", "0"),
+            "DEMO_QUICK_LOGIN": os.environ.get("DEMO_QUICK_LOGIN", "0"),
         }
     )
+
+
 @require_GET
 def demo_login_view(request):
     """
@@ -1732,12 +1800,11 @@ def demo_login_view(request):
             status=404,
         )
 
-    # ✅ 補齊 Teacher/Student 綁定，避免登入後功能不能用
     ensure_role_profile(user, role_for_profile)
-
-    # ✅ 指定 backend 以支援免密碼登入
     login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     return redirect("course_query")
+
+
 @require_GET
 def demo_logout_view(request):
     """DEMO 登出（給 urls.py 用）"""
