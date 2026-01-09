@@ -1112,11 +1112,6 @@
                             <option value="" {% if not semester %}selected{% endif %}>請選擇</option>
                             <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
                             <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
-                            <option value="1131" {% if semester == "1131" %}selected{% endif %}>1131</option>
-                            <option value="1122" {% if semester == "1122" %}selected{% endif %}>1122</option>
-                            <option value="1121" {% if semester == "1121" %}selected{% endif %}>1121</option>
-                            <option value="1112" {% if semester == "1112" %}selected{% endif %}>1112</option>
-                            <option value="1111" {% if semester == "1111" %}selected{% endif %}>1111</option>
                         </select>
                     </div>
                 </div>
@@ -1138,11 +1133,6 @@
                                     <option value="" {% if not semester %}selected{% endif %}>全部</option>
                                     <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
                                     <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
-                                    <option value="1131" {% if semester == "1131" %}selected{% endif %}>1131</option>
-                                    <option value="1122" {% if semester == "1122" %}selected{% endif %}>1122</option>
-                                    <option value="1121" {% if semester == "1121" %}selected{% endif %}>1121</option>
-                                    <option value="1112" {% if semester == "1112" %}selected{% endif %}>1112</option>
-                                    <option value="1111" {% if semester == "1111" %}selected{% endif %}>1111</option>
                                 </select>
                             </div>
                         </div>
@@ -1274,9 +1264,7 @@
             <div class="card-title">查詢結果</div>
 
             {% if not admin_mode %}
-              {% if not user.is_authenticated %}
-                <div class="card-desc">未登入狀態不可新增/移除個人課表課程</div>
-              {% elif role_name != "學生" %}
+              {% if role_name != "學生" %}
                 <div class="card-desc">只有學生身分可新增/移除個人課表課程</div>
               {% endif %}
             {% endif %}
