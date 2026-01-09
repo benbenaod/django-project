@@ -1,3 +1,4 @@
+%%writefile main/templates/main/course_query.html
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
@@ -294,7 +295,7 @@
         .detail-value{ color:#111827; }
         .detail-divider{ border-top:1px solid #e5e7eb; margin:14px 0; }
         .detail-subtitle{ font-size:14px; font-weight:700; color:#111827; margin-bottom:8px; }
-        .detail-summary{ white-space:pre-wrap; font-size:14px; color: #374151; line-height:1.6; }
+        .detail-summary{ white-space:pre-wrap; font-size:14px; color:#374151; line-height:1.6; }
 
         .teacher-link{
             border:none;
@@ -455,23 +456,11 @@
             const m = document.getElementById("loginModal");
             if (m) m.style.display = "none";
         }
-
-        // ✅ 改：選身分就直接「免帳密登入」
         function selectRole(role) {
-            // 直接送出 quick_login，不開帳密輸入
-            const f = document.getElementById("quickLoginForm");
-            const inp = document.getElementById("quickLoginInput");
-            if(!f || !inp){
-                // fallback：如果找不到表單，就退回原本流程
-                const roleInput = document.getElementById("loginRoleInput");
-                if (roleInput) roleInput.value = role;
-                closeRoleModal();
-                openLoginModalOnly();
-                return;
-            }
-            inp.value = role; // student / admin
+            const roleInput = document.getElementById("loginRoleInput");
+            if (roleInput) roleInput.value = role;
             closeRoleModal();
-            f.submit();
+            openLoginModalOnly();
         }
 
         function openProfileModal() {
@@ -1124,6 +1113,11 @@
                             <option value="" {% if not semester %}selected{% endif %}>請選擇</option>
                             <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
                             <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
+                            <option value="1131" {% if semester == "1131" %}selected{% endif %}>1131</option>
+                            <option value="1122" {% if semester == "1122" %}selected{% endif %}>1122</option>
+                            <option value="1121" {% if semester == "1121" %}selected{% endif %}>1121</option>
+                            <option value="1112" {% if semester == "1112" %}selected{% endif %}>1112</option>
+                            <option value="1111" {% if semester == "1111" %}selected{% endif %}>1111</option>
                         </select>
                     </div>
                 </div>
@@ -1145,6 +1139,11 @@
                                     <option value="" {% if not semester %}selected{% endif %}>全部</option>
                                     <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
                                     <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
+                                    <option value="1131" {% if semester == "1131" %}selected{% endif %}>1131</option>
+                                    <option value="1122" {% if semester == "1122" %}selected{% endif %}>1122</option>
+                                    <option value="1121" {% if semester == "1121" %}selected{% endif %}>1121</option>
+                                    <option value="1112" {% if semester == "1112" %}selected{% endif %}>1112</option>
+                                    <option value="1111" {% if semester == "1111" %}selected{% endif %}>1111</option>
                                 </select>
                             </div>
                         </div>
@@ -1337,7 +1336,7 @@
                                 </td>
                                 <td>
                                     <form method="post" action="{% url 'delete_course' c.id %}" style="margin:0;"
-                                          onsubmit="return confirm('確定要刪除嗎？');">
+                                          onsubmit="return confirm('確定要刪除【{{ c.course_name }}】嗎？');">
                                         {% csrf_token %}
                                         <button class="btn btn-danger" type="submit">刪除</button>
                                     </form>
@@ -1539,13 +1538,7 @@
 {% endif %}
 {% endif %}
 
-<!-- ✅ 一鍵登入用隱藏表單（給 selectRole() submit） -->
-<form id="quickLoginForm" method="post" action="" style="display:none;">
-    {% csrf_token %}
-    <input type="hidden" name="quick_login" id="quickLoginInput" value="">
-</form>
-
-<!-- 登入（保留：如果你之後想恢復帳密登入還能用） -->
+<!-- 登入 -->
 <div class="modal-bg" id="loginModal">
     <div class="modal">
         <div class="modal-title">登入系統</div>
