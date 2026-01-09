@@ -134,8 +134,8 @@ def logout_view(request):
 
 def get_excel_dir():
     candidates = [
-        Path("/content/drive/MyDrive/python/系統分析/課程查詢"),
-        Path("/content/drive/My Drive/python/系統分析/課程查詢"),
+        Path("/content/benbenaod/django-project/tree/master"),
+        Path("/content/benbenaod/django-project/tree/master"),
     ]
     for p in candidates:
         if p.exists():
