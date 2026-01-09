@@ -132,7 +132,7 @@ def logout_view(request):
 # ==============================
 
 
-
+MAX_ROWS = 300
 def get_excel_dir() -> Path:
     # 你的 repo 根目錄（通常跟 manage.py 同一層）
     base = Path(settings.BASE_DIR)
