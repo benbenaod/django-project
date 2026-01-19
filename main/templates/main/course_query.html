@@ -10,7 +10,7 @@
     <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 
     <style>
         :root{
@@ -35,10 +35,8 @@
         ::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 999px; }
         ::-webkit-scrollbar-thumb:hover { background: #a7f3d0; }
 
-        /* ===== 你原本的 CSS（保留結構，但換成清新綠主題） ===== */
         * { box-sizing: border-box; margin: 0; padding: 0; }
 
-        /* 重要：不要用 body flex center，因為要塞 sidebar */
         body{
             background: linear-gradient(180deg, #ECFDF5 0%, #F0FDF4 35%, #FFFFFF 100%);
             color: var(--text);
@@ -62,7 +60,7 @@
             align-items: baseline;
             margin-bottom: 16px;
         }
-        .card-title{ font-size: 16px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+        .card-title{ font-size: 16px; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
         .card-desc{ font-size: 12px; color: var(--muted); }
 
         /* Buttons */
@@ -73,7 +71,7 @@
             border:none;
             color:#fff;
             font-size: 14px;
-            font-weight: 800;
+            font-weight: 900;
             transition: transform .05s ease, background-color .15s ease, box-shadow .15s ease;
             text-decoration:none;
             display:inline-flex;
@@ -140,7 +138,7 @@
             font-size:14px;
             cursor:pointer;
             border:none;
-            font-weight: 700;
+            font-weight: 800;
         }
         .user-menu-item + .user-menu-item{ border-top:1px solid var(--border); }
         .user-menu-item:hover{ background: var(--primary-soft); }
@@ -156,7 +154,7 @@
             gap: 14px 22px;
         }
         .form-item{ display:flex; align-items:center; gap: 10px; margin-bottom: 6px; }
-        .form-label{ width: 64px; flex-shrink:0; font-size: 13px; color:#374151; text-align:right; font-weight: 800; }
+        .form-label{ width: 64px; flex-shrink:0; font-size: 13px; color:#374151; text-align:right; font-weight: 900; }
         .field{ flex:1; }
 
         .dropdown, .text-input{
@@ -180,7 +178,7 @@
 
         /* Day/Period */
         .day-row{ display:flex; align-items:center; gap: 10px; margin-bottom: 8px; }
-        .day-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; font-weight: 800; }
+        .day-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; font-weight: 900; }
         .day-select{ display:flex; gap: 8px; flex-wrap: wrap; }
         input[type=checkbox]{ display:none; }
         .day-box{
@@ -199,7 +197,7 @@
         }
 
         .period-row{ display:flex; align-items:flex-start; gap: 10px; }
-        .period-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; padding-top: 6px; font-weight: 800; }
+        .period-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; padding-top: 6px; font-weight: 900; }
         .period-group{ display:flex; flex-wrap: wrap; gap: 8px; }
         .period-box{
             width: 38px; height: 38px;
@@ -244,7 +242,7 @@
             font-weight: 900;
             color:#065F46;
         }
-        .course-cell{ font-weight: 800; color: var(--text); word-break: break-word; }
+        .course-cell{ font-weight: 900; color: var(--text); word-break: break-word; }
         .course-room{ font-size: 11px; color: var(--muted); word-break: break-word; }
 
         .cell-select{
@@ -307,9 +305,7 @@
             font-size: 14px;
             font-weight: 900;
         }
-        .role-btn:hover{
-            background: #D1FAE5;
-        }
+        .role-btn:hover{ background: #D1FAE5; }
 
         /* Profile + Personal modal */
         .profile-modal{ width: 560px; max-width: 92vw; text-align:left; }
@@ -326,7 +322,7 @@
             margin-bottom: 14px;
         }
         .profile-label{ text-align:right; font-size: 13px; color: var(--text); white-space: nowrap; font-weight: 900; }
-        .profile-value{ font-size: 13px; color: var(--text); font-weight: 700; }
+        .profile-value{ font-size: 13px; color: var(--text); font-weight: 800; }
         .profile-input input{
             width:100%;
             padding: 8px 10px;
@@ -363,7 +359,7 @@
             font-size: 14px;
         }
         .detail-label{ color: var(--muted); text-align:right; padding-top:2px; font-weight: 900; }
-        .detail-value{ color: var(--text); font-weight: 700; }
+        .detail-value{ color: var(--text); font-weight: 800; }
         .detail-divider{ border-top: 1px solid var(--border); margin: 14px 0; }
         .detail-subtitle{ font-size: 14px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
         .detail-summary{ white-space: pre-wrap; font-size: 14px; color:#374151; line-height: 1.7; }
@@ -455,6 +451,75 @@
         .toast .toast-btn-ok{ background:#ECFDF5; color:#065F46; }
         .toast .toast-btn-close{ background:#E5E7EB; color:#111827; }
 
+        /* ✅ Notification dropdown */
+        .notif-wrap{ position: relative; }
+        .notif-panel{
+            position:absolute;
+            right:0;
+            top: 120%;
+            width: 340px;
+            max-width: 90vw;
+            background:#fff;
+            border: 1px solid rgba(16,185,129,.18);
+            border-radius: 16px;
+            box-shadow: 0 18px 50px rgba(15,23,42,.16);
+            overflow:hidden;
+            display:none;
+            z-index: 85;
+        }
+        .notif-panel.show{ display:block; }
+        .notif-head{
+            padding: 12px 12px;
+            display:flex;
+            align-items:center;
+            justify-content: space-between;
+            border-bottom: 1px solid var(--border);
+            background: linear-gradient(180deg, #ECFDF5, #FFFFFF);
+        }
+        .notif-title{
+            font-weight: 1000;
+            color:#064E3B;
+            font-size: 14px;
+        }
+        .notif-actions{
+            display:flex;
+            gap: 8px;
+        }
+        .notif-btn{
+            border:none;
+            border-radius: 12px;
+            padding: 7px 10px;
+            cursor:pointer;
+            font-weight: 900;
+            font-size: 12px;
+            background: var(--primary-soft);
+            color:#065F46;
+            border: 1px solid rgba(16,185,129,.22);
+        }
+        .notif-btn:hover{ background:#D1FAE5; }
+        .notif-list{ max-height: 360px; overflow:auto; }
+        .notif-item{
+            padding: 10px 12px;
+            border-bottom: 1px solid var(--border);
+        }
+        .notif-item:last-child{ border-bottom:none; }
+        .notif-item .t{
+            font-weight: 1000;
+            color:#111827;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+        .notif-item .m{
+            font-size: 12px;
+            color:#374151;
+            line-height: 1.5;
+        }
+        .notif-item .meta{
+            font-size: 11px;
+            color:#9CA3AF;
+            margin-top: 6px;
+        }
+
         @media (max-width: 768px){
             .form-grid{ grid-template-columns: 1fr; }
             .form-label, .day-label-text, .period-label-text{ width: 52px; }
@@ -467,13 +532,25 @@
         #courseDetailModal.modal-bg { z-index: 90; }
         #teacherDetailModal { z-index: 110; }
         #teacherDetailModal.modal-bg { z-index: 110; }
+
+        /* ✅ new modals */
+        #dashboardModal.modal-bg{ z-index: 75; }
+        #favoritesModal.modal-bg{ z-index: 75; }
     </style>
 
     <script>
+        /* ===== 原本的全域變數（保留） ===== */
         window.MY_COURSE_IDS = {{ my_course_ids|default:"[]"|safe }};
         window.IS_AUTH = {% if user.is_authenticated %}true{% else %}false{% endif %};
         window.IS_STUDENT = {% if user.is_authenticated and role_name == "學生" %}true{% else %}false{% endif %};
         window.TEACHER_INFO_URL = "{% url 'teacher_info' %}";
+        window.IS_ADMIN_MODE = {% if admin_mode %}true{% else %}false{% endif %};
+
+        /* ✅ 通知資料（小鈴鐺用） */
+        window.NOTIFS = window.NOTIFS || [
+            { title: "歡迎回來", message: "你可以在左側選單快速開啟總覽、我的課表與收藏清單。", ts: new Date().toLocaleString() },
+            { title: "小提醒", message: "點課名可開啟課程詳細資料（含教室地圖、教師資料）。", ts: new Date().toLocaleString() },
+        ];
 
         const NO_ROOM_TEXT = "老師於iclass宣布";
         function normalizeRoomText(raw){
@@ -485,6 +562,7 @@
             return !!(s && s !== "-");
         }
 
+        /* ===== 登入/身分/個人資料/個人課表 modal（保留） ===== */
         function openLogin() {
             const m = document.getElementById("roleModal");
             if (m) m.style.display = "flex";
@@ -526,6 +604,49 @@
             if (m) m.style.display = "none";
         }
 
+        /* ✅ Sidebar 功能：總覽/收藏/我的課表 */
+        function openDashboardModal(){
+            const m = document.getElementById("dashboardModal");
+            if(!m) return;
+            renderDashboard();
+            m.style.display = "flex";
+        }
+        function closeDashboardModal(){
+            const m = document.getElementById("dashboardModal");
+            if(m) m.style.display = "none";
+        }
+
+        function openFavoritesModal(){
+            const m = document.getElementById("favoritesModal");
+            if(!m) return;
+            renderFavorites();
+            m.style.display = "flex";
+        }
+        function closeFavoritesModal(){
+            const m = document.getElementById("favoritesModal");
+            if(m) m.style.display = "none";
+        }
+
+        function openMyScheduleEntry(){
+            // 我的課表：若已登入且非管理員模式，開原本 personalScheduleModal；否則提示
+            if(window.IS_ADMIN_MODE){
+                showToast("管理員模式", "管理員模式不提供個人課表視窗。");
+                return;
+            }
+            if(!window.IS_AUTH){
+                showToast("需要登入", "請先登入（學生）後才能開啟個人課表。");
+                openLogin();
+                return;
+            }
+            const m = document.getElementById("personalScheduleModal");
+            if(!m){
+                showToast("尚未提供", "目前頁面沒有個人課表視窗（personalScheduleModal）。");
+                return;
+            }
+            openPersonalScheduleModal();
+        }
+
+        /* ===== 查詢條件檢查（保留） ===== */
         function checkSearchConditionsStudent() {
             const form = document.getElementById("searchFormStudent");
             if (!form) return true;
@@ -584,6 +705,7 @@
             form.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = false);
         }
 
+        /* ===== User Menu（保留） ===== */
         function toggleUserMenu() {
             const menu = document.getElementById("userMenu");
             if (!menu) return;
@@ -593,12 +715,76 @@
         document.addEventListener("click", function(event) {
             const menu = document.getElementById("userMenu");
             const btn  = document.getElementById("userMenuButton");
-            if (!menu || !btn) return;
-            if (!menu.contains(event.target) && !btn.contains(event.target)) {
-                menu.style.display = "none";
+            if (menu && btn) {
+                if (!menu.contains(event.target) && !btn.contains(event.target)) {
+                    menu.style.display = "none";
+                }
+            }
+
+            // ✅ 通知面板點外面關閉
+            const np = document.getElementById("notifPanel");
+            const nb = document.getElementById("notifButton");
+            if(np && nb){
+                if(!np.contains(event.target) && !nb.contains(event.target)){
+                    np.classList.remove("show");
+                }
             }
         });
 
+        /* ===== Notification Bell ===== */
+        function updateNotifBadge(){
+            const badge = document.getElementById("notifBadge");
+            if(!badge) return;
+            const n = Array.isArray(window.NOTIFS) ? window.NOTIFS.length : 0;
+            if(n <= 0){
+                badge.style.display = "none";
+            }else{
+                badge.style.display = "inline-flex";
+                badge.textContent = (n > 9) ? "9+" : String(n);
+            }
+        }
+
+        function renderNotifPanel(){
+            const list = document.getElementById("notifList");
+            if(!list) return;
+            const notifs = Array.isArray(window.NOTIFS) ? window.NOTIFS : [];
+            if(notifs.length === 0){
+                list.innerHTML = `<div class="p-4 text-sm text-zinc-500">目前沒有通知 ✨</div>`;
+                return;
+            }
+            list.innerHTML = notifs.slice().reverse().map(x => `
+                <div class="notif-item">
+                    <div class="t">${escapeHtml(x.title || "通知")}</div>
+                    <div class="m">${escapeHtml(x.message || "")}</div>
+                    <div class="meta">${escapeHtml(x.ts || "")}</div>
+                </div>
+            `).join("");
+        }
+
+        function toggleNotifPanel(){
+            const p = document.getElementById("notifPanel");
+            if(!p) return;
+            renderNotifPanel();
+            p.classList.toggle("show");
+        }
+
+        function clearNotifs(){
+            window.NOTIFS = [];
+            updateNotifBadge();
+            renderNotifPanel();
+        }
+
+        function addNotification(title, message){
+            window.NOTIFS = Array.isArray(window.NOTIFS) ? window.NOTIFS : [];
+            window.NOTIFS.push({
+                title: title || "通知",
+                message: message || "",
+                ts: new Date().toLocaleString()
+            });
+            updateNotifBadge();
+        }
+
+        /* ===== 原本工具（保留） ===== */
         function escapeHtml(str){
             if (str === null || str === undefined) return "";
             return String(str)
@@ -780,7 +966,10 @@
             return "";
         }
 
+        /* ✅ showToast：保留原本功能 + 同步寫入通知（給小鈴鐺） */
         function showToast(title, msg){
+            addNotification(title, msg);
+
             const t = document.getElementById("toast");
             if(!t) return;
             t.querySelector(".toast-title").textContent = title || "";
@@ -1096,6 +1285,118 @@
             });
         }
 
+        /* ✅ Dashboard / Favorites 內容生成（不改後端，從 DOM + MY_COURSE_IDS 取） */
+        function getResultCourseCards(){
+            const els = Array.from(document.querySelectorAll(".course-clickable"));
+            return els.map(el => ({
+                id: (el.dataset.id || "").trim(),
+                name: (el.dataset.name || "").trim() || el.textContent.trim(),
+                dept: (el.dataset.dept || "").trim(),
+                teacher: (el.dataset.teacher || "").trim(),
+                time: (el.dataset.time || "").trim(),
+                room: (el.dataset.room || "").trim(),
+                week: (el.dataset.week || "").trim(),
+                code: (el.dataset.code || "").trim(),
+                summary: (el.dataset.summary || "").trim(),
+                el: el
+            }));
+        }
+
+        function renderDashboard(){
+            const myCountEl = document.getElementById("dashMyCount");
+            const resultCountEl = document.getElementById("dashResultCount");
+            const modeEl = document.getElementById("dashMode");
+            const quickEl = document.getElementById("dashQuickList");
+
+            const myCount = Array.isArray(window.MY_COURSE_IDS) ? window.MY_COURSE_IDS.length : 0;
+            const resultCount = document.querySelectorAll(".course-clickable").length;
+
+            if(myCountEl) myCountEl.textContent = String(myCount);
+            if(resultCountEl) resultCountEl.textContent = String(resultCount);
+
+            if(modeEl){
+                if(window.IS_ADMIN_MODE) modeEl.textContent = "管理員模式";
+                else if(window.IS_AUTH) modeEl.textContent = window.IS_STUDENT ? "學生（可加入個人課表）" : "已登入（非學生）";
+                else modeEl.textContent = "未登入";
+            }
+
+            if(quickEl){
+                const items = [];
+                items.push({ t:"前往查詢條件", a: ()=> document.getElementById("searchFormStudent")?.scrollIntoView({behavior:"smooth"}) });
+                if(!window.IS_ADMIN_MODE){
+                    items.push({ t:"開啟我的課表", a: ()=> openMyScheduleEntry() });
+                }
+                if(window.IS_AUTH){
+                    items.push({ t:"開啟個人資料", a: ()=> openProfileModal() });
+                }else{
+                    items.push({ t:"登入（學生/管理員）", a: ()=> openLogin() });
+                }
+                items.push({ t:"檢視通知", a: ()=> { toggleNotifPanel(); } });
+
+                quickEl.innerHTML = items.map((x, idx)=>`
+                    <button type="button" class="w-full text-left px-3 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-50 font-extrabold text-sm text-zinc-800"
+                        onclick="(${x.a.toString()})()">
+                        ${escapeHtml(x.t)}
+                    </button>
+                `).join("");
+            }
+        }
+
+        function renderFavorites(){
+            const wrap = document.getElementById("favList");
+            const hint = document.getElementById("favHint");
+            if(!wrap) return;
+
+            // 這裡用「已加入個人課表的課」當作收藏清單（不改你的資料結構）
+            const all = getResultCourseCards();
+            const mySet = new Set((Array.isArray(window.MY_COURSE_IDS) ? window.MY_COURSE_IDS : []).map(x=>String(x)));
+
+            const favs = all.filter(x => x.id && mySet.has(String(parseInt(x.id,10))));
+
+            if(hint){
+                if(!window.IS_AUTH) hint.textContent = "未登入狀態：可瀏覽查詢結果，但收藏/我的課表需登入（學生）。";
+                else if(window.IS_ADMIN_MODE) hint.textContent = "管理員模式不提供收藏清單（此頁以學生個人課表為主）。";
+                else hint.textContent = "這裡顯示你已加入個人課表的課（可視為收藏清單）。";
+            }
+
+            if(favs.length === 0){
+                wrap.innerHTML = `
+                    <div class="text-sm text-zinc-500 py-3">
+                        目前沒有收藏（或你還沒把課加入個人課表）。<br/>
+                        你可以先在查詢結果裡按「新增課程」，再回來看收藏清單。
+                    </div>`;
+                return;
+            }
+
+            wrap.innerHTML = favs.map(c => `
+                <div class="p-3 rounded-2xl border border-emerald-100 hover:bg-emerald-50 transition-colors">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <div class="font-extrabold text-zinc-900">${escapeHtml(c.name || "-")}</div>
+                            <div class="text-xs text-zinc-500 mt-1">${escapeHtml(c.dept || "")} · ${escapeHtml(c.teacher || "")}</div>
+                            <div class="text-xs text-zinc-500 mt-1">${escapeHtml(c.time || "")} · ${escapeHtml(normalizeRoomText(c.room || ""))}</div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button type="button"
+                                class="px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 text-white hover:brightness-95"
+                                onclick="openCourseDetailFromEl(document.querySelector('.course-clickable[data-id=\\'${escapeHtml(c.id)}\\']'))">
+                                詳細
+                            </button>
+                            <button type="button"
+                                class="px-3 py-2 rounded-xl text-xs font-extrabold bg-red-100 text-red-700 border border-red-200 hover:bg-red-200"
+                                onclick="(function(){
+                                    const el=document.querySelector('.course-clickable[data-id=\\'${escapeHtml(c.id)}\\']');
+                                    if(!el){ showToast('移除失敗','找不到此課程 DOM（可能不在本次查詢結果）。'); return; }
+                                    handleRemoveCourse(el,'${escapeHtml(c.id)}');
+                                })()">
+                                移除
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
         document.addEventListener("DOMContentLoaded", function() {
             {% if login_error %}
                 openLoginModalOnly();
@@ -1103,13 +1404,16 @@
             initCellSelects();
             bindCourseClick();
             injectMyCourseButtons();
+
+            // ✅ 初始化通知徽章
+            updateNotifBadge();
         });
     </script>
 </head>
 
 <body class="min-h-screen flex bg-emerald-50 text-zinc-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
 
-    <!-- Sidebar (新 UI) -->
+    <!-- Sidebar -->
     <aside class="w-64 border-r border-emerald-100 fixed inset-y-0 left-0 hidden md:flex flex-col bg-white z-50">
         <div class="h-16 flex items-center px-6 border-b border-emerald-50">
             <div class="flex items-center gap-2 text-emerald-900">
@@ -1121,29 +1425,37 @@
         </div>
 
         <nav class="flex-1 px-3 py-6 space-y-0.5">
-            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
+            <a href="javascript:void(0)"
+               onclick="openDashboardModal()"
+               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
                 <iconify-icon icon="solar:home-smile-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
                 總覽儀表板
             </a>
 
-            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm font-bold text-emerald-800 bg-emerald-50 rounded-xl">
+            <a href="javascript:void(0)"
+               class="flex items-center gap-3 px-3 py-2 text-sm font-extrabold text-emerald-800 bg-emerald-50 rounded-xl">
                 <iconify-icon icon="solar:magnifer-linear" width="20" class="text-emerald-600"></iconify-icon>
                 課程查詢
             </a>
 
-            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
+            <a href="javascript:void(0)"
+               onclick="openMyScheduleEntry()"
+               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
                 <iconify-icon icon="solar:calendar-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
                 我的課表
             </a>
 
-            <a href="#" class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
+            <a href="javascript:void(0)"
+               onclick="openFavoritesModal()"
+               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
                 <iconify-icon icon="solar:bookmark-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
                 收藏清單
             </a>
         </nav>
 
         <div class="p-4 border-t border-emerald-100">
-            <div class="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-emerald-50 cursor-pointer transition-colors">
+            <div class="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-emerald-50 cursor-pointer transition-colors"
+                 onclick="{% if user.is_authenticated %}openProfileModal(){% else %}openLogin(){% endif %}">
                 <div class="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-extrabold">
                     {% if user.is_authenticated %}
                         {{ display_name|default:user.username|slice:":2" }}
@@ -1163,7 +1475,7 @@
                         {% if user.is_authenticated %}
                             {{ role_name|default:"-" }}
                         {% else %}
-                            請登入以使用更多功能
+                            點此登入以使用更多功能
                         {% endif %}
                     </span>
                 </div>
@@ -1174,7 +1486,7 @@
     <!-- Main -->
     <main class="md:ml-64 flex-1 min-h-screen relative">
 
-        <!-- Top Sticky Header (新 UI) -->
+        <!-- Top Header -->
         <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-100 px-6 h-16 flex items-center justify-between">
             <div class="flex items-center gap-4">
                 <h1 class="text-base font-extrabold text-zinc-900 tracking-tight">課程查詢系統</h1>
@@ -1185,10 +1497,30 @@
             </div>
 
             <div class="flex items-center gap-3">
-                <button class="relative p-2 text-zinc-400 hover:text-emerald-700 transition-colors" type="button">
-                    <iconify-icon icon="solar:bell-linear" width="20"></iconify-icon>
-                    <span class="absolute top-1.5 right-1.5 w-2 h-2 bg-emerald-500 rounded-full border-2 border-white"></span>
-                </button>
+                <!-- ✅ 小鈴鐺有內容：通知面板 -->
+                <div class="notif-wrap">
+                    <button id="notifButton"
+                            class="relative p-2 text-zinc-400 hover:text-emerald-700 transition-colors"
+                            type="button"
+                            onclick="toggleNotifPanel()">
+                        <iconify-icon icon="solar:bell-linear" width="20"></iconify-icon>
+                        <span id="notifBadge"
+                              class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center border-2 border-white">
+                            0
+                        </span>
+                    </button>
+
+                    <div class="notif-panel" id="notifPanel">
+                        <div class="notif-head">
+                            <div class="notif-title">通知中心</div>
+                            <div class="notif-actions">
+                                <button type="button" class="notif-btn" onclick="clearNotifs()">清空</button>
+                                <button type="button" class="notif-btn" onclick="toggleNotifPanel()">關閉</button>
+                            </div>
+                        </div>
+                        <div class="notif-list" id="notifList"></div>
+                    </div>
+                </div>
 
                 {% if user.is_authenticated %}
                     <div class="user-menu-wrapper">
@@ -1231,7 +1563,7 @@
                 <div class="card-header">
                     <div>
                         <div class="card-title">查詢條件</div>
-                        <div class="card-desc">選擇條件後查詢課表（保留你原本的表格結果）</div>
+                        <div class="card-desc">選擇條件後查詢課表（查詢結果保留你原本的課表表格）</div>
                     </div>
                 </div>
 
@@ -1488,7 +1820,6 @@
                     {{ timetable_html|safe }}
                 {% endif %}
             </div>
-
         </div>
     </main>
 
@@ -1499,6 +1830,64 @@
         <div class="toast-actions">
             <button type="button" class="toast-btn toast-btn-close" onclick="hideToast()">關閉</button>
             <button type="button" class="toast-btn toast-btn-ok" onclick="hideToast()">知道了</button>
+        </div>
+    </div>
+
+    <!-- ✅ Dashboard Modal -->
+    <div class="modal-bg" id="dashboardModal">
+        <div class="modal personal-modal" style="width:880px; max-width:95vw;">
+            <div class="personal-header">
+                <div class="personal-title">總覽儀表板</div>
+                <button type="button" class="personal-close" onclick="closeDashboardModal()">✕</button>
+            </div>
+
+            <div class="detail-box">
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50">
+                        <div class="text-xs font-extrabold text-emerald-700">我的課表已加入</div>
+                        <div class="text-3xl font-black text-zinc-900 mt-1" id="dashMyCount">0</div>
+                        <div class="text-xs text-zinc-500 mt-1">以 MY_COURSE_IDS 計算</div>
+                    </div>
+                    <div class="p-4 rounded-2xl border border-emerald-100 bg-white">
+                        <div class="text-xs font-extrabold text-emerald-700">本次查詢結果課程數</div>
+                        <div class="text-3xl font-black text-zinc-900 mt-1" id="dashResultCount">0</div>
+                        <div class="text-xs text-zinc-500 mt-1">以 course-clickable 數量計算</div>
+                    </div>
+                    <div class="p-4 rounded-2xl border border-emerald-100 bg-white">
+                        <div class="text-xs font-extrabold text-emerald-700">目前模式</div>
+                        <div class="text-lg font-black text-zinc-900 mt-2" id="dashMode">-</div>
+                        <div class="text-xs text-zinc-500 mt-1">依 admin_mode / role 判斷</div>
+                    </div>
+                </div>
+
+                <div class="detail-divider"></div>
+
+                <div class="detail-subtitle">快速操作</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="dashQuickList"></div>
+
+                <div class="modal-actions" style="justify-content:flex-end; margin-top:14px;">
+                    <button type="button" class="btn btn-cancel" onclick="closeDashboardModal()">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ✅ Favorites Modal -->
+    <div class="modal-bg" id="favoritesModal">
+        <div class="modal personal-modal" style="width:920px; max-width:95vw;">
+            <div class="personal-header">
+                <div class="personal-title">收藏清單</div>
+                <button type="button" class="personal-close" onclick="closeFavoritesModal()">✕</button>
+            </div>
+
+            <div class="detail-box">
+                <div class="text-sm text-zinc-500 mb-3" id="favHint">-</div>
+                <div class="space-y-3" id="favList"></div>
+
+                <div class="modal-actions" style="justify-content:flex-end; margin-top:14px;">
+                    <button type="button" class="btn btn-cancel" onclick="closeFavoritesModal()">關閉</button>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1639,7 +2028,7 @@
                 {% if messages %}
                     <div style="font-size:13px; text-align:left; margin-bottom:8px;">
                         {% for message in messages %}
-                            <div style="color:{% if message.tags == 'error' %}#b91c1c{% else %}#16a34a{% endif %}; font-weight:800;">
+                            <div style="color:{% if message.tags == 'error' %}#b91c1c{% else %}#16a34a{% endif %}; font-weight:900;">
                                 {{ message }}
                             </div>
                         {% endfor %}
@@ -1683,7 +2072,7 @@
                 <input class="login-input" type="password" name="password" placeholder="密碼">
 
                 {% if login_error %}
-                    <div style="color:#b91c1c; font-size:13px; margin-top:8px; text-align:left; font-weight:800;">
+                    <div style="color:#b91c1c; font-size:13px; margin-top:8px; text-align:left; font-weight:900;">
                         {{ login_error }}
                     </div>
                 {% endif %}
