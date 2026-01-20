@@ -763,7 +763,7 @@
       const resultCount = document.querySelectorAll(".course-clickable").length;
 
       // 目前模式：依 admin_mode / role_name
-      const modeText = "{% if admin_mode %}管理員{% else %}{% if role_name == '學生' %}學生（可加入個人課表）{% else %}一般{% endif %}{% endif %}";
+      const modeText = "{% if admin_mode %}管理員{% else %}{% if role_name == '學生' %}學生{% else %}一般{% endif %}{% endif %}";
 
       const elMy = document.getElementById("dash_my_count");
       const elRes = document.getElementById("dash_result_count");
@@ -1480,7 +1480,6 @@
       <div class="p-5 border-b border-slate-100 flex items-center justify-between">
         <div>
           <div class="text-lg font-extrabold text-slate-900">請選擇身分</div>
-          <div class="text-sm text-slate-500 font-bold mt-1">登入前先選角色</div>
         </div>
         <button type="button" class="w-10 h-10 rounded-2xl bg-slate-100 border border-slate-200 hover:bg-slate-200 transition inline-flex items-center justify-center"
                 onclick="closeRoleModal()">
@@ -1546,7 +1545,6 @@
       <div class="p-5 border-b border-slate-100 flex items-center justify-between">
         <div>
           <div class="text-lg font-extrabold text-slate-900">個人資料管理</div>
-          <div class="text-sm text-slate-500 font-bold mt-1">可更新密碼（保留你原本流程）</div>
         </div>
         <button type="button" class="w-10 h-10 rounded-2xl bg-emerald-50 border border-emerald-100 hover:bg-emerald-100 transition inline-flex items-center justify-center"
                 onclick="closeProfileModal()">
