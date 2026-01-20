@@ -1,2086 +1,1896 @@
 <!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>課程查詢系統</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>課程查詢系統</title>
 
-    <!-- Tailwind + Iconify + Font -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <!-- Tailwind + Iconify + Inter -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://code.iconify.design/iconify-icon/1.0.7/iconify-icon.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
-    <style>
-        :root{
-            /* ✅ 清新綠（柔和、療癒） */
-            --primary: #10B981;        /* Emerald 500 */
-            --primary-hover: #059669;  /* Emerald 600 */
-            --primary-soft: #ECFDF5;   /* Emerald 50 */
-            --accent: #14B8A6;         /* Teal 500 */
-            --accent-soft: #CCFBF1;    /* Teal 100 */
+  <style>
+    /* ===== 清新綠主題（更柔和、療癒） ===== */
+    :root{
+      --primary: #10B981;        /* Emerald 500 */
+      --primary-hover: #059669;  /* Emerald 600 */
+      --primary-soft: #ECFDF5;   /* Emerald 50 */
+      --accent: #14B8A6;         /* Teal 500 */
+      --accent-soft: #CCFBF1;    /* Teal 100 */
+      --ink: #111827;            /* Gray-900 */
+      --muted: #6b7280;          /* Gray-500 */
+      --border: #e5e7eb;         /* Gray-200 */
+      --bg: #ffffff;
+      --panel: #ffffff;
+    }
 
-            --text: #111827;
-            --muted: #6B7280;
-            --border: #E5E7EB;
-            --bg: #ECFDF5;
-        }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body{
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: var(--bg);
+      color: #111827;
+      margin: 0;
+      padding: 0;
+      display: block; /* 重要：不要 flex 置中，避免 sidebar 壞掉 */
+    }
 
-        html, body { font-family: 'Inter', sans-serif; }
+    /* ===== 你原本的 CSS（保留，僅做「色系活潑化」） ===== */
+    .btn{
+      padding: 8px 16px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: none;
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 700;
+      transition: background-color .15s ease, transform .05s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-login{ background-color: var(--primary); }
+    .btn-login:hover{ background-color: var(--primary-hover); }
 
-        /* Smooth scrollbar */
-        ::-webkit-scrollbar { width: 8px; height: 8px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #d1fae5; border-radius: 999px; }
-        ::-webkit-scrollbar-thumb:hover { background: #a7f3d0; }
+    .btn-primary{ background-color: var(--primary); }
+    .btn-primary:hover{ background-color: var(--primary-hover); }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
+    .btn-cancel{ background-color: #9ca3af; }
+    .btn-cancel:hover{ background-color: #6b7280; }
 
-        body{
-            background: linear-gradient(180deg, #ECFDF5 0%, #F0FDF4 35%, #FFFFFF 100%);
-            color: var(--text);
-        }
+    .btn-danger{ background:#fee2e2; color:#b91c1c; }
+    .btn-danger:hover{ background:#fecaca; }
 
-        .page{ width:100%; }
+    .user-menu-wrapper{ position: relative; display: inline-block; }
+    .user-menu-button{
+      background-color: var(--primary);
+      color: #ffffff;
+      border-radius: 999px;
+      padding: 8px 18px;
+      border: none;
+      box-shadow: 0 6px 18px rgba(16, 185, 129, 0.18);
+    }
+    .user-menu-button:hover{ background-color: var(--primary-hover); }
 
-        /* Card */
-        .card{
-            background:#ffffff;
-            border-radius: 16px;
-            border: 1px solid rgba(16,185,129,.18);
-            box-shadow: 0 10px 30px rgba(15,23,42,0.06);
-            padding: 22px 22px;
-        }
-        .card + .card{ margin-top: 18px; }
+    .user-menu{
+      position: absolute;
+      right: 0;
+      top: 110%;
+      display: none;
+      min-width: 180px;
+      background-color: #ffffff;
+      border-radius: 14px;
+      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+      padding: 6px 0;
+      z-index: 80;
+      border: 1px solid #eef2f7;
+    }
+    .user-menu-item{
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 10px 12px;
+      width: 100%;
+      background-color: #ffffff;
+      color: #111827;
+      text-decoration: none;
+      font-size: 14px;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+    }
+    .user-menu-item + .user-menu-item{ border-top: 1px solid #eef2f7; }
+    .user-menu-item:hover{ background-color: #f9fafb; }
+    .user-menu-item-hello{ font-weight: 800; }
+    .user-menu-item-logout{ background-color: #fee2e2; color: #b91c1c; }
+    .user-menu-item-logout:hover{ background-color: #fecaca; }
 
-        .card-header{
-            display:flex;
-            justify-content: space-between;
-            align-items: baseline;
-            margin-bottom: 16px;
-        }
-        .card-title{ font-size: 16px; font-weight: 900; color: var(--text); letter-spacing: -0.02em; }
-        .card-desc{ font-size: 12px; color: var(--muted); }
+    .card{
+      background: #ffffff;
+      border-radius: 16px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.06);
+      padding: 24px 28px;
+      margin-bottom: 0;
+      border: 1px solid #eef2f7;
+    }
+    .card-header{
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 18px;
+    }
+    .card-title{ font-size: 16px; font-weight: 800; color: #111827; }
+    .card-desc{ font-size: 12px; color: #6b7280; }
 
-        /* Buttons */
-        .btn{
-            padding: 9px 14px;
-            border-radius: 12px;
-            cursor:pointer;
-            border:none;
-            color:#fff;
-            font-size: 14px;
-            font-weight: 900;
-            transition: transform .05s ease, background-color .15s ease, box-shadow .15s ease;
-            text-decoration:none;
-            display:inline-flex;
-            align-items:center;
-            justify-content:center;
-            gap: 8px;
-        }
-        .btn:active{ transform: translateY(1px); }
+    form{ width: 100%; }
+    .form-grid{
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px 32px;
+    }
+    .form-item{ display: flex; align-items: center; gap: 10px; margin-bottom: 6px; }
+    .form-label{ width: 64px; flex-shrink: 0; font-size: 14px; color: #374151; text-align: right; font-weight: 700; }
+    .field{ flex: 1; }
 
-        .btn-login, .btn-primary{
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            box-shadow: 0 10px 22px rgba(16,185,129,.18);
-        }
-        .btn-login:hover, .btn-primary:hover{
-            filter: brightness(0.98);
-            box-shadow: 0 12px 26px rgba(16,185,129,.22);
-        }
+    .dropdown, .text-input{
+      width: 100%;
+      height: 36px;
+      padding: 6px 10px;
+      border-radius: 10px;
+      border: 1px solid #d1d5db;
+      font-size: 14px;
+      background-color: #ffffff;
+      color: #111827;
+    }
+    .dropdown:focus, .text-input:focus{
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(16,185,129,.18);
+    }
 
-        .btn-cancel{
-            background: #9CA3AF;
-            box-shadow: 0 10px 18px rgba(156,163,175,.18);
-        }
-        .btn-cancel:hover{ background:#6B7280; }
+    .section-divider{ border-top: 1px solid #e5e7eb; margin: 18px 0; }
 
-        .btn-danger{ background:#FEE2E2; color:#B91C1C; border:1px solid #FECACA; }
-        .btn-danger:hover{ background:#FECACA; }
+    .day-row{ display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .day-label-text{ width: 64px; text-align: right; font-size: 14px; color: #374151; font-weight: 800; }
+    .day-select{ display: flex; gap: 8px; flex-wrap: wrap; }
+    input[type=checkbox]{ display: none; }
+    .day-box{
+      width: 36px; height: 36px;
+      border-radius: 12px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 900; color: #065f46;
+      cursor: pointer;
+      transition: background-color .15s ease, color .15s ease, transform .05s ease;
+    }
+    input[type=checkbox]:checked + .day-box{
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: #ffffff;
+    }
 
-        /* User menu */
-        .user-menu-wrapper{ position:relative; display:inline-block; }
-        .user-menu-button{
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color:#fff;
-            border-radius: 999px;
-            padding: 10px 16px;
-            border:none;
-            font-weight: 900;
-            box-shadow: 0 12px 24px rgba(16,185,129,.20);
-        }
-        .user-menu-button:hover{ filter: brightness(.98); }
+    .period-row{ display: flex; align-items: flex-start; gap: 10px; }
+    .period-label-text{ width: 64px; text-align: right; font-size: 14px; color: #374151; padding-top: 6px; font-weight: 800; }
+    .period-group{ display: flex; flex-wrap: wrap; gap: 6px; }
+    .period-box{
+      width: 34px; height: 34px;
+      border-radius: 12px;
+      background-color: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      display: inline-flex; justify-content: center; align-items: center;
+      cursor: pointer; font-size: 13px; font-weight: 900; color: #065f46;
+      transition: background-color .15s ease, color .15s ease, transform .05s ease;
+    }
+    .period-box span{
+      display: inline-flex; justify-content: center; align-items: center;
+      width: 100%; height: 100%; border-radius: 12px;
+    }
+    .period-box input{ display: none; }
+    .period-box input:checked + span{
+      background-color: var(--primary);
+      color: #ffffff;
+    }
 
-        .user-menu{
-            position:absolute;
-            right:0;
-            top: 115%;
-            display:none;
-            min-width: 190px;
-            background:#fff;
-            border-radius: 16px;
-            border: 1px solid rgba(16,185,129,.18);
-            box-shadow: 0 18px 40px rgba(15,23,42,.14);
-            padding: 6px 0;
-            z-index: 80;
-            overflow:hidden;
-        }
-        .user-menu-item{
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            padding: 10px 12px;
-            width:100%;
-            background:#fff;
-            color: var(--text);
-            text-decoration:none;
-            font-size:14px;
-            cursor:pointer;
-            border:none;
-            font-weight: 800;
-        }
-        .user-menu-item + .user-menu-item{ border-top:1px solid var(--border); }
-        .user-menu-item:hover{ background: var(--primary-soft); }
-        .user-menu-item-hello{ font-weight: 900; color: #065F46; }
-        .user-menu-item-logout{ background:#FEE2E2; color:#B91C1C; }
-        .user-menu-item-logout:hover{ background:#FECACA; }
+    .form-actions{ display: flex; justify-content: flex-end; margin-top: 18px; gap: 10px; }
 
-        /* Form */
-        form{ width:100%; }
-        .form-grid{
-            display:grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 14px 22px;
-        }
-        .form-item{ display:flex; align-items:center; gap: 10px; margin-bottom: 6px; }
-        .form-label{ width: 64px; flex-shrink:0; font-size: 13px; color:#374151; text-align:right; font-weight: 900; }
-        .field{ flex:1; }
+    .count-info{ font-size: 13px; color: #6b7280; margin-top: -4px; margin-bottom: 10px; }
+    .no-result{ font-size: 14px; color: #6b7280; padding: 8px 0; }
 
-        .dropdown, .text-input{
-            width:100%;
-            height: 40px;
-            padding: 8px 10px;
-            border-radius: 12px;
-            border: 1px solid rgba(16,185,129,.22);
-            font-size: 14px;
-            background:#fff;
-            color: var(--text);
-            outline:none;
-            transition: box-shadow .15s ease, border-color .15s ease, transform .05s ease;
-        }
-        .dropdown:focus, .text-input:focus{
-            border-color: rgba(16,185,129,.55);
-            box-shadow: 0 0 0 4px rgba(16,185,129,.12);
-        }
+    .timetable-wrapper{ margin-top: 4px; }
+    .timetable-title{ font-size: 16px; font-weight: 900; margin-bottom: 10px; color: #111827; }
 
-        .section-divider{ border-top: 1px solid var(--border); margin: 16px 0; }
+    table.timetable{ width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
+    table.timetable th, table.timetable td{
+      border: 1px solid #e5e7eb;
+      padding: 6px;
+      vertical-align: top;
+      text-align: center;
+    }
+    table.timetable th{
+      background-color: #ecfdf5;
+      font-weight: 900;
+      color: #065f46;
+    }
+    .course-cell{ font-weight: 800; color: #111827; word-break: break-word; }
+    .course-room{ font-size: 11px; color: #6b7280; word-break: break-word; }
 
-        /* Day/Period */
-        .day-row{ display:flex; align-items:center; gap: 10px; margin-bottom: 8px; }
-        .day-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; font-weight: 900; }
-        .day-select{ display:flex; gap: 8px; flex-wrap: wrap; }
-        input[type=checkbox]{ display:none; }
-        .day-box{
-            width: 38px; height: 38px;
-            border-radius: 12px;
-            background: #D1FAE5;
-            border: 1px solid rgba(16,185,129,.18);
-            display:flex; align-items:center; justify-content:center;
-            font-size: 14px; font-weight: 900; color:#065F46;
-            cursor:pointer;
-            transition: transform .05s ease, background-color .15s ease, color .15s ease;
-        }
-        input[type=checkbox]:checked + .day-box{
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color:#fff;
-        }
+    .cell-select{
+      width: 100%;
+      height: 36px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      padding: 4px 8px;
+      font-size: 12px;
+      background: #ffffff;
+      color: #111827;
+    }
+    .cell-display{ margin-top: 8px; text-align: left; }
 
-        .period-row{ display:flex; align-items:flex-start; gap: 10px; }
-        .period-label-text{ width:64px; text-align:right; font-size:13px; color:#374151; padding-top: 6px; font-weight: 900; }
-        .period-group{ display:flex; flex-wrap: wrap; gap: 8px; }
-        .period-box{
-            width: 38px; height: 38px;
-            border-radius: 12px;
-            background: #ECFDF5;
-            border: 1px solid rgba(16,185,129,.20);
-            display:inline-flex; align-items:center; justify-content:center;
-            cursor:pointer;
-            font-size: 13px; font-weight: 900; color:#064E3B;
-            transition: transform .05s ease, background-color .15s ease, color .15s ease;
-        }
-        .period-box span{
-            display:inline-flex;
-            width:100%; height:100%;
-            align-items:center; justify-content:center;
-            border-radius: 12px;
-        }
-        .period-box input{ display:none; }
-        .period-box input:checked + span{
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color:#fff;
-        }
+    .op-col{ width: 96px; }
 
-        .form-actions{ display:flex; justify-content:flex-end; margin-top: 14px; gap: 10px; }
+    .modal-bg{
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.45);
+      justify-content: center;
+      align-items: center;
+      z-index: 50;
+    }
+    .modal{
+      width: 320px;
+      background: #ffffff;
+      padding: 20px 22px;
+      border-radius: 16px;
+      box-shadow: 0 18px 40px rgba(15,23,42,.25);
+      text-align: center;
+      border: 1px solid #eef2f7;
+    }
+    .modal-title{ font-size: 18px; font-weight: 900; margin-bottom: 16px; color: #111827; }
+    .login-input{
+      width: 100%;
+      padding: 8px 10px;
+      margin: 6px 0;
+      border: 1px solid #d1d5db;
+      border-radius: 12px;
+      font-size: 14px;
+    }
+    .modal-actions{ display: flex; justify-content: center; gap: 12px; margin-top: 16px; }
 
-        .count-info{ font-size:13px; color: var(--muted); margin-top: -4px; margin-bottom: 10px; }
-        .no-result{ font-size:14px; color: var(--muted); padding: 8px 0; }
+    .role-btn{
+      min-width: 72px;
+      background-color: #ecfdf5;
+      color: #065f46;
+      border-radius: 12px;
+      padding: 8px 14px;
+      border: 1px solid #a7f3d0;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 900;
+    }
+    .role-btn:hover{ background-color: #d1fae5; }
 
-        /* Timetable */
-        .timetable-wrapper{ margin-top: 4px; }
-        .timetable-title{ font-size: 15px; font-weight: 900; margin-bottom: 10px; color: var(--text); }
+    .profile-modal{ width: 560px; max-width: 90vw; border: 3px solid #a7f3d0; }
+    .profile-header{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+    .profile-title{ font-size: 20px; font-weight: 900; color: #111827; }
+    .profile-close{ background: none; border: none; font-size: 22px; color: var(--primary); cursor: pointer; font-weight: 900; }
+    .profile-grid{
+      display: grid;
+      grid-template-columns: auto 1fr auto 1fr;
+      column-gap: 12px;
+      row-gap: 10px;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .profile-label{ text-align: right; font-size: 14px; color: #111827; white-space: nowrap; font-weight: 900; }
+    .profile-value{ font-size: 14px; color: #111827; font-weight: 700; }
+    .profile-input input{
+      width: 100%;
+      padding: 6px 8px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      background-color: #e5e7eb;
+      font-size: 14px;
+    }
+    .profile-input input:not([readonly]){ background-color: #ffffff; }
 
-        table.timetable{ width: 100%; border-collapse: collapse; font-size: 13px; table-layout: fixed; }
-        table.timetable th, table.timetable td{
-            border: 1px solid var(--border);
-            padding: 8px 6px;
-            vertical-align: top;
-            text-align: center;
-        }
-        table.timetable th{
-            background: #ECFDF5;
-            font-weight: 900;
-            color:#065F46;
-        }
-        .course-cell{ font-weight: 900; color: var(--text); word-break: break-word; }
-        .course-room{ font-size: 11px; color: var(--muted); word-break: break-word; }
+    .personal-modal{ width: 980px; max-width: 95vw; text-align:left; }
+    .personal-header{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .personal-title{ font-size: 18px; font-weight: 900; color: #111827; }
+    .personal-close{ background: none; border: none; font-size: 22px; color: var(--primary); cursor: pointer; font-weight: 900; }
 
-        .cell-select{
-            width: 100%;
-            height: 40px;
-            border-radius: 12px;
-            border: 1px solid rgba(16,185,129,.22);
-            padding: 6px 10px;
-            font-size: 12px;
-            background:#fff;
-            color: var(--text);
-        }
-        .cell-display{ margin-top: 8px; text-align:left; }
-        .op-col{ width: 96px; }
+    .detail-box{
+      background:#ffffff;
+      border-radius:16px;
+      padding:18px 18px;
+      border:1px solid #eef2f7;
+    }
+    .detail-title{
+      font-size:18px;
+      font-weight:900;
+      color:#111827;
+      margin-bottom:14px;
+    }
+    .detail-grid{
+      display:grid;
+      grid-template-columns: 110px 1fr;
+      gap:12px 18px;
+      align-items:start;
+      font-size:14px;
+    }
+    .detail-label{ color:#6b7280; text-align:right; padding-top:2px; font-weight: 900; }
+    .detail-value{ color:#111827; font-weight: 700; }
+    .detail-divider{ border-top:1px solid #e5e7eb; margin:14px 0; }
+    .detail-subtitle{ font-size:14px; font-weight:900; color:#111827; margin-bottom:8px; }
+    .detail-summary{ white-space:pre-wrap; font-size:14px; color:#374151; line-height:1.6; }
 
-        /* Modal */
-        .modal-bg{
-            display:none;
-            position: fixed;
-            inset:0;
-            background: rgba(15,23,42,0.48);
-            justify-content:center;
-            align-items:center;
-            z-index: 60;
-        }
-        .modal{
-            width: 340px;
-            background:#fff;
-            padding: 20px 22px;
-            border-radius: 16px;
-            border: 1px solid rgba(16,185,129,.20);
-            box-shadow: 0 22px 60px rgba(15,23,42,.28);
-            text-align:center;
-        }
-        .modal-title{ font-size: 18px; font-weight: 900; margin-bottom: 14px; color: var(--text); }
+    .teacher-link{
+      border:none;
+      background:none;
+      padding:0;
+      color: var(--primary);
+      font-weight: 900;
+      cursor:pointer;
+      text-align:left;
+    }
+    .teacher-link[disabled]{ opacity:.6; cursor:not-allowed; }
 
-        .login-input{
-            width:100%;
-            padding: 10px 12px;
-            margin: 7px 0;
-            border: 1px solid rgba(16,185,129,.22);
-            border-radius: 12px;
-            font-size: 14px;
-            outline:none;
-        }
-        .login-input:focus{
-            box-shadow: 0 0 0 4px rgba(16,185,129,.12);
-            border-color: rgba(16,185,129,.55);
-        }
-        .modal-actions{ display:flex; justify-content:center; gap: 12px; margin-top: 14px; }
+    .room-loc-btn{
+      display:none;
+      margin-left: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid #a7f3d0;
+      background: #ecfdf5;
+      color: #065f46;
+      font-weight: 900;
+      font-size: 12px;
+      cursor: pointer;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    .room-loc-btn:hover{ background:#d1fae5; }
 
-        .role-btn{
-            min-width: 86px;
-            background: var(--primary-soft);
-            color:#065F46;
-            border-radius: 12px;
-            padding: 10px 14px;
-            border: 1px solid rgba(16,185,129,.25);
-            cursor:pointer;
-            font-size: 14px;
-            font-weight: 900;
-        }
-        .role-btn:hover{ background: #D1FAE5; }
+    .teacher-meta{
+      margin-top: 6px;
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      font-size: 12px;
+      color: #374151;
+    }
+    .teacher-meta .chip{
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      color: #065f46;
+      font-weight: 900;
+    }
+    .teacher-meta .chip .k{
+      color:#6b7280;
+      font-weight: 900;
+    }
 
-        /* Profile + Personal modal */
-        .profile-modal{ width: 560px; max-width: 92vw; text-align:left; }
-        .profile-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 12px; }
-        .profile-title{ font-size: 18px; font-weight: 900; color: var(--text); }
-        .profile-close{ background:none; border:none; font-size: 22px; color: var(--primary); cursor:pointer; font-weight: 900; }
+    .mini-actions{
+      margin-top: 8px;
+      display: flex;
+      gap: 8px;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+    }
+    .btn-mini{
+      padding: 6px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 900;
+      border: 1px solid transparent;
+      cursor: pointer;
+      background: #111827;
+      color: #fff;
+    }
+    .btn-add{
+      background: var(--primary);
+      color: #ffffff;
+      border-color: var(--primary);
+    }
+    .btn-add:hover{ background: var(--primary-hover); border-color: var(--primary-hover); }
 
-        .profile-grid{
-            display:grid;
-            grid-template-columns: auto 1fr auto 1fr;
-            column-gap: 12px;
-            row-gap: 10px;
-            align-items:center;
-            margin-bottom: 14px;
-        }
-        .profile-label{ text-align:right; font-size: 13px; color: var(--text); white-space: nowrap; font-weight: 900; }
-        .profile-value{ font-size: 13px; color: var(--text); font-weight: 800; }
-        .profile-input input{
-            width:100%;
-            padding: 8px 10px;
-            border-radius: 12px;
-            border: 1px solid var(--border);
-            background:#F3F4F6;
-            font-size: 13px;
-            outline:none;
-        }
-        .profile-input input:not([readonly]){ background:#fff; border: 1px solid rgba(16,185,129,.22); }
-        .profile-input input:focus{
-            box-shadow: 0 0 0 4px rgba(16,185,129,.12);
-            border-color: rgba(16,185,129,.55);
-        }
+    .btn-remove{
+      background: #fee2e2;
+      color: #b91c1c;
+      border-color: #fecaca;
+    }
+    .btn-remove:hover{ background:#fecaca; }
+    .btn-mini[disabled]{ opacity: .55; cursor: not-allowed; }
 
-        .personal-modal{ width: 980px; max-width: 95vw; text-align:left; }
-        .personal-header{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 10px; }
-        .personal-title{ font-size: 16px; font-weight: 900; color: var(--text); }
-        .personal-close{ background:none; border:none; font-size: 22px; color: var(--primary); cursor:pointer; font-weight: 900; }
+    .toast{
+      position: fixed;
+      right: 18px;
+      bottom: 18px;
+      max-width: 420px;
+      z-index: 90;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border-radius: 16px;
+      padding: 12px 14px;
+      box-shadow: 0 10px 30px rgba(15,23,42,.25);
+      display: none;
+      font-size: 13px;
+      line-height: 1.5;
+      border: 1px solid rgba(255,255,255,.18);
+    }
+    .toast.show{ display:block; }
+    .toast .toast-title{ font-weight: 900; margin-bottom: 4px; }
+    .toast .toast-actions{ display:flex; justify-content:flex-end; gap:10px; margin-top: 10px; }
+    .toast .toast-btn{
+      border: none;
+      border-radius: 12px;
+      padding: 6px 10px;
+      cursor: pointer;
+      font-weight: 900;
+      font-size: 12px;
+    }
+    .toast .toast-btn-ok{ background:#ffffff; color:#065f46; }
+    .toast .toast-btn-close{ background:rgba(255,255,255,.78); color:#111827; }
 
-        /* Detail box */
-        .detail-box{
-            background:#fff;
-            border-radius: 16px;
-            padding: 18px 18px;
-            border: 1px solid rgba(16,185,129,.18);
-        }
-        .detail-title{ font-size: 18px; font-weight: 1000; color: var(--text); margin-bottom: 14px; }
-        .detail-grid{
-            display:grid;
-            grid-template-columns: 110px 1fr;
-            gap: 12px 18px;
-            align-items:start;
-            font-size: 14px;
-        }
-        .detail-label{ color: var(--muted); text-align:right; padding-top:2px; font-weight: 900; }
-        .detail-value{ color: var(--text); font-weight: 800; }
-        .detail-divider{ border-top: 1px solid var(--border); margin: 14px 0; }
-        .detail-subtitle{ font-size: 14px; font-weight: 900; color: var(--text); margin-bottom: 8px; }
-        .detail-summary{ white-space: pre-wrap; font-size: 14px; color:#374151; line-height: 1.7; }
+    @media (max-width: 768px) {
+      .card{ padding: 18px 16px; }
+      .form-grid{ grid-template-columns: 1fr; }
+      .form-label, .day-label-text, .period-label-text{ width: 52px; }
+      .detail-grid{ grid-template-columns: 90px 1fr; }
+    }
 
-        .teacher-link{
-            border:none;
-            background:none;
-            padding:0;
-            color: var(--primary);
-            font-weight: 1000;
-            cursor:pointer;
-            text-align:left;
-        }
-        .teacher-link[disabled]{ opacity:.6; cursor:not-allowed; }
+    /* ===== 你原本的 z-index 保留 ===== */
+    #personalScheduleModal{ z-index: 50; }
+    #courseDetailModal{ z-index: 70; }
+    #courseDetailModal.modal-bg{ z-index: 70; }
+    #teacherDetailModal{ z-index: 85; }
+    #teacherDetailModal.modal-bg{ z-index: 85; }
 
-        .room-loc-btn{
-            display:none;
-            margin-left: 10px;
-            padding: 7px 10px;
-            border-radius: 999px;
-            border: 1px solid rgba(16,185,129,.22);
-            background: var(--primary-soft);
-            color: #065F46;
-            font-weight: 1000;
-            font-size: 12px;
-            cursor:pointer;
-            align-items:center;
-            justify-content:center;
-            gap: 6px;
-        }
-        .room-loc-btn:hover{ background:#D1FAE5; }
+    /* ===== 新增：總覽儀表板 / 收藏清單 / 通知的層級 ===== */
+    #dashboardModal.modal-bg{ z-index: 95; }
+    #bookmarksModal.modal-bg{ z-index: 92; }
+    #notifPanel{ z-index: 91; }
 
-        /* Mini actions + Toast */
-        .mini-actions{
-            margin-top: 8px;
-            display:flex;
-            gap: 8px;
-            justify-content:flex-start;
-            flex-wrap: wrap;
-        }
-        .btn-mini{
-            padding: 7px 10px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 1000;
-            border: 1px solid transparent;
-            cursor:pointer;
-        }
-        .btn-add{
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color:#fff;
-            border-color: rgba(16,185,129,.28);
-        }
-        .btn-add:hover{ filter: brightness(.98); }
-        .btn-remove{
-            background:#FEE2E2;
-            color:#B91C1C;
-            border-color:#FECACA;
-        }
-        .btn-remove:hover{ background:#FECACA; }
-        .btn-mini[disabled]{ opacity:.55; cursor:not-allowed; }
+    /* 讓 timetable 在小螢幕不爆版（外層會包 overflow） */
+    .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+  </style>
 
-        .toast{
-            position: fixed;
-            right: 18px;
-            bottom: 18px;
-            max-width: 420px;
-            z-index: 120;
-            background: linear-gradient(135deg, var(--primary), var(--accent));
-            color:#fff;
-            border-radius: 16px;
-            padding: 12px 14px;
-            box-shadow: 0 16px 40px rgba(15,23,42,.22);
-            display:none;
-            font-size: 13px;
-            line-height: 1.6;
-        }
-        .toast.show{ display:block; }
-        .toast .toast-title{ font-weight: 1000; margin-bottom: 4px; }
-        .toast .toast-actions{ display:flex; justify-content:flex-end; gap: 10px; margin-top: 10px; }
-        .toast .toast-btn{
-            border:none;
-            border-radius: 12px;
-            padding: 7px 10px;
-            cursor:pointer;
-            font-weight: 1000;
-            font-size: 12px;
-        }
-        .toast .toast-btn-ok{ background:#ECFDF5; color:#065F46; }
-        .toast .toast-btn-close{ background:#E5E7EB; color:#111827; }
+  <script>
+    /* ===== Django 注入（原本保留） ===== */
+    window.MY_COURSE_IDS = {{ my_course_ids|default:"[]"|safe }};
+    window.IS_AUTH = {% if user.is_authenticated %}true{% else %}false{% endif %};
+    window.IS_STUDENT = {% if user.is_authenticated and role_name == "學生" %}true{% else %}false{% endif %};
+    window.TEACHER_INFO_URL = "{% url 'teacher_info' %}";
+    window.IS_ADMIN_MODE = {% if admin_mode %}true{% else %}false{% endif %};
 
-        /* ✅ Notification dropdown */
-        .notif-wrap{ position: relative; }
-        .notif-panel{
-            position:absolute;
-            right:0;
-            top: 120%;
-            width: 340px;
-            max-width: 90vw;
-            background:#fff;
-            border: 1px solid rgba(16,185,129,.18);
-            border-radius: 16px;
-            box-shadow: 0 18px 50px rgba(15,23,42,.16);
-            overflow:hidden;
-            display:none;
-            z-index: 85;
-        }
-        .notif-panel.show{ display:block; }
-        .notif-head{
-            padding: 12px 12px;
-            display:flex;
-            align-items:center;
-            justify-content: space-between;
-            border-bottom: 1px solid var(--border);
-            background: linear-gradient(180deg, #ECFDF5, #FFFFFF);
-        }
-        .notif-title{
-            font-weight: 1000;
-            color:#064E3B;
-            font-size: 14px;
-        }
-        .notif-actions{
-            display:flex;
-            gap: 8px;
-        }
-        .notif-btn{
-            border:none;
-            border-radius: 12px;
-            padding: 7px 10px;
-            cursor:pointer;
-            font-weight: 900;
-            font-size: 12px;
-            background: var(--primary-soft);
-            color:#065F46;
-            border: 1px solid rgba(16,185,129,.22);
-        }
-        .notif-btn:hover{ background:#D1FAE5; }
-        .notif-list{ max-height: 360px; overflow:auto; }
-        .notif-item{
-            padding: 10px 12px;
-            border-bottom: 1px solid var(--border);
-        }
-        .notif-item:last-child{ border-bottom:none; }
-        .notif-item .t{
-            font-weight: 1000;
-            color:#111827;
-            font-size: 13px;
-            margin-bottom: 4px;
-        }
-        .notif-item .m{
-            font-size: 12px;
-            color:#374151;
-            line-height: 1.5;
-        }
-        .notif-item .meta{
-            font-size: 11px;
-            color:#9CA3AF;
-            margin-top: 6px;
-        }
+    const NO_ROOM_TEXT = "老師於iclass宣布";
+    function normalizeRoomText(raw){
+      const s = (raw ?? "").toString().trim();
+      return (!s || s === "-") ? NO_ROOM_TEXT : s;
+    }
+    function hasRealRoom(raw){
+      const s = (raw ?? "").toString().trim();
+      return !!(s && s !== "-");
+    }
 
-        @media (max-width: 768px){
-            .form-grid{ grid-template-columns: 1fr; }
-            .form-label, .day-label-text, .period-label-text{ width: 52px; }
-            .detail-grid{ grid-template-columns: 90px 1fr; }
-        }
+    function openLogin(){
+      const m = document.getElementById("roleModal");
+      if (m) m.style.display = "flex";
+    }
+    function closeRoleModal(){
+      const m = document.getElementById("roleModal");
+      if (m) m.style.display = "none";
+    }
+    function openLoginModalOnly(){
+      const m = document.getElementById("loginModal");
+      if (m) m.style.display = "flex";
+    }
+    function closeLogin(){
+      const m = document.getElementById("loginModal");
+      if (m) m.style.display = "none";
+    }
+    function selectRole(role){
+      const roleInput = document.getElementById("loginRoleInput");
+      if (roleInput) roleInput.value = role;
+      closeRoleModal();
+      openLoginModalOnly();
+    }
 
-        /* z-index keep */
-        #personalScheduleModal { z-index: 70; }
-        #courseDetailModal { z-index: 90; }
-        #courseDetailModal.modal-bg { z-index: 90; }
-        #teacherDetailModal { z-index: 110; }
-        #teacherDetailModal.modal-bg { z-index: 110; }
+    function openProfileModal(){
+      const m = document.getElementById("profileModal");
+      if (m) m.style.display = "flex";
+    }
+    function closeProfileModal(){
+      const m = document.getElementById("profileModal");
+      if (m) m.style.display = "none";
+    }
 
-        /* ✅ new modals */
-        #dashboardModal.modal-bg{ z-index: 75; }
-        #favoritesModal.modal-bg{ z-index: 75; }
-    </style>
+    function openPersonalScheduleModal(){
+      const m = document.getElementById("personalScheduleModal");
+      if (m) m.style.display = "flex";
+    }
+    function closePersonalScheduleModal(){
+      const m = document.getElementById("personalScheduleModal");
+      if (m) m.style.display = "none";
+    }
 
-    <script>
-        /* ===== 原本的全域變數（保留） ===== */
-        window.MY_COURSE_IDS = {{ my_course_ids|default:"[]"|safe }};
-        window.IS_AUTH = {% if user.is_authenticated %}true{% else %}false{% endif %};
-        window.IS_STUDENT = {% if user.is_authenticated and role_name == "學生" %}true{% else %}false{% endif %};
-        window.TEACHER_INFO_URL = "{% url 'teacher_info' %}";
-        window.IS_ADMIN_MODE = {% if admin_mode %}true{% else %}false{% endif %};
+    function checkSearchConditionsStudent(){
+      const form = document.getElementById("searchFormStudent");
+      if (!form) return true;
 
-        /* ✅ 通知資料（小鈴鐺用） */
-        window.NOTIFS = window.NOTIFS || [
-            { title: "歡迎回來", message: "你可以在左側選單快速開啟總覽、我的課表與收藏清單。", ts: new Date().toLocaleString() },
-            { title: "小提醒", message: "點課名可開啟課程詳細資料（含教室地圖、教師資料）。", ts: new Date().toLocaleString() },
-        ];
+      const fieldNames = [
+        "semester", "system", "grade", "department",
+        "teacher", "course_name", "course_code", "class_type"
+      ];
 
-        const NO_ROOM_TEXT = "老師於iclass宣布";
-        function normalizeRoomText(raw){
-            const s = (raw ?? "").toString().trim();
-            return (!s || s === "-") ? NO_ROOM_TEXT : s;
+      let hasCondition = false;
+      for (let name of fieldNames){
+        const el = form.elements[name];
+        if (!el) continue;
+        if (el.tagName === "SELECT" || el.type === "select-one" || el.type === "text"){
+          if (el.value && el.value.trim() !== ""){
+            hasCondition = true;
+            break;
+          }
         }
-        function hasRealRoom(raw){
-            const s = (raw ?? "").toString().trim();
-            return !!(s && s !== "-");
-        }
+      }
 
-        /* ===== 登入/身分/個人資料/個人課表 modal（保留） ===== */
-        function openLogin() {
-            const m = document.getElementById("roleModal");
-            if (m) m.style.display = "flex";
-        }
-        function closeRoleModal() {
-            const m = document.getElementById("roleModal");
-            if (m) m.style.display = "none";
-        }
-        function openLoginModalOnly() {
-            const m = document.getElementById("loginModal");
-            if (m) m.style.display = "flex";
-        }
-        function closeLogin() {
-            const m = document.getElementById("loginModal");
-            if (m) m.style.display = "none";
-        }
-        function selectRole(role) {
-            const roleInput = document.getElementById("loginRoleInput");
-            if (roleInput) roleInput.value = role;
-            closeRoleModal();
-            openLoginModalOnly();
-        }
+      if (!hasCondition){
+        const dayChecked = form.querySelectorAll("input[name='day']:checked").length > 0;
+        const periodChecked = form.querySelectorAll("input[name='period']:checked").length > 0;
+        if (dayChecked || periodChecked) hasCondition = true;
+      }
 
-        function openProfileModal() {
-            const m = document.getElementById("profileModal");
-            if (m) m.style.display = "flex";
-        }
-        function closeProfileModal() {
-            const m = document.getElementById("profileModal");
-            if (m) m.style.display = "none";
-        }
+      if (!hasCondition){
+        alert("請至少選擇學期再按「查詢」。");
+        return false;
+      }
+      return true;
+    }
 
-        function openPersonalScheduleModal() {
-            const m = document.getElementById("personalScheduleModal");
-            if (m) m.style.display = "flex";
-        }
-        function closePersonalScheduleModal() {
-            const m = document.getElementById("personalScheduleModal");
-            if (m) m.style.display = "none";
-        }
+    function checkSearchConditionsAdmin(){
+      const form = document.getElementById("searchFormAdmin");
+      if (!form) return true;
+      const sem = form.elements["semester"];
+      if (!sem || !sem.value || sem.value.trim() === ""){
+        alert("管理員請先選擇學期。");
+        return false;
+      }
+      return true;
+    }
 
-        /* ✅ Sidebar 功能：總覽/收藏/我的課表 */
-        function openDashboardModal(){
-            const m = document.getElementById("dashboardModal");
-            if(!m) return;
-            renderDashboard();
-            m.style.display = "flex";
-        }
-        function closeDashboardModal(){
-            const m = document.getElementById("dashboardModal");
-            if(m) m.style.display = "none";
-        }
+    function clearFiltersStudent(){
+      const form = document.getElementById("searchFormStudent");
+      if (!form) return;
 
-        function openFavoritesModal(){
-            const m = document.getElementById("favoritesModal");
-            if(!m) return;
-            renderFavorites();
-            m.style.display = "flex";
-        }
-        function closeFavoritesModal(){
-            const m = document.getElementById("favoritesModal");
-            if(m) m.style.display = "none";
-        }
+      const fields = ["semester","system","grade","department","teacher","course_name","course_code","class_type"];
+      for (const name of fields){
+        const el = form.elements[name];
+        if (!el) continue;
+        el.value = "";
+      }
+      form.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = false);
+    }
 
-        function openMyScheduleEntry(){
-            // 我的課表：若已登入且非管理員模式，開原本 personalScheduleModal；否則提示
-            if(window.IS_ADMIN_MODE){
-                showToast("管理員模式", "管理員模式不提供個人課表視窗。");
-                return;
+    function toggleUserMenu(){
+      const menu = document.getElementById("userMenu");
+      if (!menu) return;
+      menu.style.display = (menu.style.display === "block") ? "none" : "block";
+    }
+
+    document.addEventListener("click", function(event){
+      /* 原本：關 userMenu */
+      const menu = document.getElementById("userMenu");
+      const btn  = document.getElementById("userMenuButton");
+      if (menu && btn){
+        if (!menu.contains(event.target) && !btn.contains(event.target)){
+          menu.style.display = "none";
+        }
+      }
+
+      /* 新增：關通知面板（點外面關） */
+      const np = document.getElementById("notifPanel");
+      const nb = document.getElementById("notifBellBtn");
+      if (np && nb){
+        if (!np.contains(event.target) && !nb.contains(event.target)){
+          np.style.display = "none";
+        }
+      }
+    });
+
+    function escapeHtml(str){
+      if (str === null || str === undefined) return "";
+      return String(str)
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function updateTimetableCell(cellId){
+      const sel = document.getElementById(cellId + "_select");
+      const box = document.getElementById(cellId + "_display");
+      if(!sel || !box) return;
+
+      const opt = sel.options[sel.selectedIndex];
+      const name = opt.dataset.name || "";
+      const dept = opt.dataset.dept || "";
+      const teacher = opt.dataset.teacher || "";
+      const rawRoom = opt.dataset.room || "";
+      const room = normalizeRoomText(rawRoom);
+
+      sel.title = name;
+
+      box.innerHTML =
+        `<div class="course-cell">${escapeHtml(name)}</div>` +
+        `<div class="course-room">${escapeHtml(dept)}</div>` +
+        `<div class="course-room">${escapeHtml(teacher)} ${escapeHtml(room)}</div>`;
+    }
+
+    function initCellSelects(){
+      document.querySelectorAll("select.cell-select").forEach(sel => {
+        const id = sel.id || "";
+        if (!id.endsWith("_select")) return;
+        const cellId = id.slice(0, -7);
+        sel.addEventListener("change", function(){
+          updateTimetableCell(cellId);
+        });
+        updateTimetableCell(cellId);
+      });
+    }
+
+    function openTeacherDetailModal(data){
+      const m = document.getElementById("teacherDetailModal");
+      if(!m) return;
+      document.getElementById("td_name").textContent = data.name_ch || data.name || "-";
+      document.getElementById("td_category").textContent = data.category || "-";
+      document.getElementById("td_ext").textContent = data.ext || "-";
+      m.style.display = "flex";
+    }
+    function closeTeacherDetail(){
+      const m = document.getElementById("teacherDetailModal");
+      if(m) m.style.display = "none";
+    }
+
+    async function fetchTeacherInfoByName(name){
+      const q = encodeURIComponent(name || "");
+      const url = window.TEACHER_INFO_URL + `?name=${q}`;
+      const res = await fetch(url);
+      const data = await res.json().catch(()=>null);
+      return {res, data};
+    }
+
+    function openCourseDetail(payload){
+      const m = document.getElementById("courseDetailModal");
+      if (!m) return;
+
+      document.getElementById("cd_name").textContent = payload.name || "-";
+      document.getElementById("cd_dept").textContent = payload.dept || "-";
+      document.getElementById("cd_teacher").textContent = payload.teacher || "-";
+
+      const rawRoom = (payload.room ?? "").toString();
+      document.getElementById("cd_room").textContent = normalizeRoomText(rawRoom);
+
+      document.getElementById("cd_time").textContent = payload.time || "-";
+      document.getElementById("cd_week").textContent = payload.week || "-";
+      document.getElementById("cd_code").textContent = payload.code || "-";
+
+      const summaryEl = document.getElementById("cd_summary");
+      const rawSummary = (payload.summary ?? "").trim();
+      summaryEl.textContent = (!rawSummary || rawSummary === "-")
+        ? "老師於iclass宣布"
+        : rawSummary;
+
+      const meta = document.getElementById("cd_teacher_meta");
+      if(meta) meta.style.display = "none";
+
+      const btn = document.getElementById("cd_teacher_btn");
+      const teacherName = (payload.teacher || "").trim();
+      if(btn){
+        const hasTeacher = (teacherName !== "" && teacherName !== "-");
+        btn.disabled = !hasTeacher;
+        btn.onclick = async function(ev){
+          ev.stopPropagation();
+          if(!hasTeacher) return;
+          try{
+            const {res, data} = await fetchTeacherInfoByName(teacherName);
+            if(!res.ok || !data || data.ok !== true){
+              alert((data && data.message) ? data.message : "找不到教師資料");
+              return;
             }
-            if(!window.IS_AUTH){
-                showToast("需要登入", "請先登入（學生）後才能開啟個人課表。");
-                openLogin();
-                return;
-            }
-            const m = document.getElementById("personalScheduleModal");
-            if(!m){
-                showToast("尚未提供", "目前頁面沒有個人課表視窗（personalScheduleModal）。");
-                return;
-            }
-            openPersonalScheduleModal();
+            openTeacherDetailModal(data);
+          }catch(e){
+            console.error(e);
+            alert("讀取教師資料失敗（網路或伺服器錯誤）");
+          }
+        };
+      }
+
+      const roomBtn = document.getElementById("cd_room_loc_btn");
+      if(roomBtn){
+        if(hasRealRoom(rawRoom)){
+          roomBtn.style.display = "inline-flex";
+          const q = encodeURIComponent("臺北護理健康大學 " + rawRoom.trim());
+          const url = "https://www.google.com/maps/search/?api=1&query=" + q;
+          roomBtn.onclick = () => window.open(url, "_blank", "noopener");
+        }else{
+          roomBtn.style.display = "none";
+          roomBtn.onclick = null;
+        }
+      }
+
+      m.style.display = "flex";
+    }
+
+    function closeCourseDetail(){
+      const m = document.getElementById("courseDetailModal");
+      if (m) m.style.display = "none";
+    }
+
+    function openCourseDetailFromEl(el){
+      if (!el) return;
+      const payload = {
+        id: el.dataset.id || "",
+        name: el.dataset.name || "",
+        dept: el.dataset.dept || "",
+        teacher: el.dataset.teacher || "",
+        room: el.dataset.room || "",
+        time: el.dataset.time || "",
+        week: el.dataset.week || "",
+        code: el.dataset.code || "",
+        summary: el.dataset.summary || "",
+      };
+      openCourseDetail(payload);
+    }
+
+    function bindCourseClick(){
+      document.querySelectorAll(".course-clickable").forEach(el => {
+        el.addEventListener("click", () => openCourseDetailFromEl(el));
+      });
+
+      document.querySelectorAll(".cell-display").forEach(box => {
+        box.style.cursor = "pointer";
+        box.addEventListener("click", () => {
+          const cellId = (box.id || "").replace(/_display$/, "");
+          const sel = document.getElementById(cellId + "_select");
+          if (!sel) return;
+          const opt = sel.options[sel.selectedIndex];
+          if (!opt) return;
+          openCourseDetail({
+            id: opt.dataset.id || "",
+            name: opt.dataset.name || "",
+            dept: opt.dataset.dept || "",
+            teacher: opt.dataset.teacher || "",
+            room: opt.dataset.room || "",
+            time: opt.dataset.time || "",
+            week: opt.dataset.week || "",
+            code: opt.dataset.code || "",
+            summary: opt.dataset.summary || "",
+          });
+        });
+      });
+    }
+
+    function getCookie(name){
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return "";
+    }
+
+    function showToast(title, msg){
+      const t = document.getElementById("toast");
+      if(!t) return;
+      t.querySelector(".toast-title").textContent = title || "";
+      t.querySelector(".toast-msg").textContent = msg || "";
+      t.classList.add("show");
+    }
+    function hideToast(){
+      const t = document.getElementById("toast");
+      if(!t) return;
+      t.classList.remove("show");
+    }
+
+    function parseTimeSlots(timeStr){
+      const slots = [];
+      if(!timeStr) return slots;
+      const s = String(timeStr);
+
+      let day = null;
+      const mDay = s.match(/星期\s*([0-9])/);
+      if(mDay) day = parseInt(mDay[1], 10);
+
+      const mPer = s.match(/第\s*([0-9,\-\s]+)\s*節/);
+      if(mPer){
+        const raw = mPer[1].replaceAll(" ", "");
+        if(raw.includes(",")){
+          raw.split(",").forEach(x=>{
+            const p = parseInt(x,10);
+            if(!Number.isNaN(p) && day) slots.push(`${day}-${p}`);
+          });
+        } else if(raw.includes("-")){
+          const [a,b] = raw.split("-").map(x=>parseInt(x,10));
+          if(!Number.isNaN(a) && !Number.isNaN(b) && day){
+            const start = Math.min(a,b), end = Math.max(a,b);
+            for(let p=start; p<=end; p++) slots.push(`${day}-${p}`);
+          }
+        } else {
+          const p = parseInt(raw,10);
+          if(!Number.isNaN(p) && day) slots.push(`${day}-${p}`);
+        }
+      } else {
+        const nums = s.match(/[0-9]+/g) || [];
+        if(nums.length >= 2){
+          day = day ?? parseInt(nums[0],10);
+          const p = parseInt(nums[1],10);
+          if(!Number.isNaN(day) && !Number.isNaN(p)) slots.push(`${day}-${p}`);
+        }
+      }
+      return slots;
+    }
+
+    function buildMySlotSet(){
+      const set = new Set();
+
+      const personal = document.getElementById("personalScheduleModal");
+      if(personal){
+        personal.querySelectorAll(".course-clickable").forEach(el=>{
+          const t = el.dataset.time || "";
+          parseTimeSlots(t).forEach(k=>set.add(k));
+        });
+      }
+
+      document.querySelectorAll(".course-clickable").forEach(el=>{
+        const cid = (el.dataset.id || "").trim();
+        if(!cid) return;
+        if(Array.isArray(window.MY_COURSE_IDS) && window.MY_COURSE_IDS.includes(parseInt(cid,10))){
+          const t = el.dataset.time || "";
+          parseTimeSlots(t).forEach(k=>set.add(k));
+        }
+      });
+
+      return set;
+    }
+
+    function buildConflictMessage(conflicts){
+      const dayMap = {1:"一",2:"二",3:"三",4:"四",5:"五",6:"六",7:"日"};
+      const items = conflicts.map(k=>{
+        const [d,p] = k.split("-").map(x=>parseInt(x,10));
+        return `星期${dayMap[d] || d} 第${p}節`;
+      });
+      return items.join("、");
+    }
+
+    async function postToggleMyCourse(action, courseId){
+      const csrftoken = getCookie("csrftoken");
+      const form = new URLSearchParams();
+      form.append("action", action);
+      form.append("course_id", String(courseId));
+
+      const res = await fetch(window.location.pathname, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          "X-CSRFToken": csrftoken,
+        },
+        body: form.toString(),
+      });
+
+      let data = null;
+      const ct = (res.headers.get("content-type") || "").toLowerCase();
+      if(ct.includes("application/json")){
+        data = await res.json();
+      } else {
+        const txt = await res.text();
+        data = { ok: res.ok, message: txt };
+      }
+      return {res, data};
+    }
+
+    function isMyCourseId(courseId){
+      const cid = parseInt(courseId, 10);
+      if(Number.isNaN(cid)) return false;
+      if(!Array.isArray(window.MY_COURSE_IDS)) return false;
+      return window.MY_COURSE_IDS.includes(cid);
+    }
+
+    function addMyCourseId(courseId){
+      const cid = parseInt(courseId,10);
+      if(Number.isNaN(cid)) return;
+      if(!Array.isArray(window.MY_COURSE_IDS)) window.MY_COURSE_IDS = [];
+      if(!window.MY_COURSE_IDS.includes(cid)) window.MY_COURSE_IDS.push(cid);
+    }
+
+    function removeMyCourseId(courseId){
+      const cid = parseInt(courseId,10);
+      if(Number.isNaN(cid)) return;
+      if(!Array.isArray(window.MY_COURSE_IDS)) window.MY_COURSE_IDS = [];
+      window.MY_COURSE_IDS = window.MY_COURSE_IDS.filter(x => x !== cid);
+    }
+
+    async function handleAddCourse(el, courseId){
+      if(!window.IS_AUTH || !window.IS_STUDENT){
+        showToast("需要登入", "未登入狀態不能新增課程，請先以「學生」身分登入。");
+        openLogin();
+        return;
+      }
+
+      const mySet = buildMySlotSet();
+      const newSlots = parseTimeSlots(el.dataset.time || "");
+      const conflicts = newSlots.filter(k => mySet.has(k));
+
+      if(conflicts.length > 0){
+        showToast("無法新增", `此課程與你的個人課表衝堂：${buildConflictMessage(conflicts)}`);
+        return;
+      }
+
+      const btn = el.querySelector(`[data-btn-for="${courseId}"]`);
+      if(btn) btn.disabled = true;
+
+      try{
+        const {res, data} = await postToggleMyCourse("add_my_course", courseId);
+
+        if(res.status === 401 || res.status === 403){
+          showToast("需要登入", (data && data.message) ? data.message : "請先以學生身分登入。");
+          openLogin();
+          if(btn) btn.disabled = false;
+          return;
         }
 
-        /* ===== 查詢條件檢查（保留） ===== */
-        function checkSearchConditionsStudent() {
-            const form = document.getElementById("searchFormStudent");
-            if (!form) return true;
-
-            const fieldNames = [
-                "semester", "system", "grade", "department",
-                "teacher", "course_name", "course_code", "class_type"
-            ];
-
-            let hasCondition = false;
-            for (let name of fieldNames) {
-                const el = form.elements[name];
-                if (!el) continue;
-                if (el.tagName === "SELECT" || el.type === "select-one" || el.type === "text") {
-                    if (el.value && el.value.trim() !== "") {
-                        hasCondition = true;
-                        break;
-                    }
-                }
-            }
-
-            if (!hasCondition) {
-                const dayChecked = form.querySelectorAll("input[name='day']:checked").length > 0;
-                const periodChecked = form.querySelectorAll("input[name='period']:checked").length > 0;
-                if (dayChecked || periodChecked) hasCondition = true;
-            }
-
-            if (!hasCondition) {
-                alert("請至少選擇學期再按「查詢」。");
-                return false;
-            }
-            return true;
+        if(res.status === 409 && data && data.conflict){
+          showToast("無法新增", data.message || "此課程與你的個人課表衝堂，無法新增。");
+          if(btn) btn.disabled = false;
+          return;
         }
 
-        function checkSearchConditionsAdmin() {
-            const form = document.getElementById("searchFormAdmin");
-            if (!form) return true;
-            const sem = form.elements["semester"];
-            if (!sem || !sem.value || sem.value.trim() === "") {
-                alert("管理員請先選擇學期。");
-                return false;
-            }
-            return true;
+        if(!res.ok || !data || data.ok === false){
+          alert((data && data.message) ? data.message : "新增失敗，請稍後再試。");
+          if(btn) btn.disabled = false;
+          return;
         }
 
-        function clearFiltersStudent() {
-            const form = document.getElementById("searchFormStudent");
-            if (!form) return;
+        addMyCourseId(courseId);
+        showToast("已新增到個人課表", "已將此課程加入你的個人課表。畫面將更新。");
+        setTimeout(()=>{ window.location.reload(); }, 600);
 
-            const fields = ["semester","system","grade","department","teacher","course_name","course_code","class_type"];
-            for (const name of fields) {
-                const el = form.elements[name];
-                if (!el) continue;
-                el.value = "";
-            }
-            form.querySelectorAll("input[type='checkbox']").forEach(cb => cb.checked = false);
+      }catch(err){
+        console.error(err);
+        alert("新增失敗（網路或伺服器錯誤）。");
+        if(btn) btn.disabled = false;
+      }
+    }
+
+    async function handleRemoveCourse(el, courseId){
+      if(!window.IS_AUTH || !window.IS_STUDENT){
+        showToast("需要登入", "未登入狀態不能移除課程，請先以「學生」身分登入。");
+        openLogin();
+        return;
+      }
+
+      const ok = confirm("確定要從個人課表移除這門課嗎？");
+      if(!ok) return;
+
+      const btn = el.querySelector(`[data-btn-for="${courseId}"]`);
+      if(btn) btn.disabled = true;
+
+      try{
+        const {res, data} = await postToggleMyCourse("remove_my_course", courseId);
+
+        if(res.status === 401 || res.status === 403){
+          showToast("需要登入", (data && data.message) ? data.message : "請先以學生身分登入。");
+          openLogin();
+          if(btn) btn.disabled = false;
+          return;
         }
 
-        /* ===== User Menu（保留） ===== */
-        function toggleUserMenu() {
-            const menu = document.getElementById("userMenu");
-            if (!menu) return;
-            menu.style.display = (menu.style.display === "block") ? "none" : "block";
+        if(!res.ok || !data || data.ok === false){
+          alert((data && data.message) ? data.message : "移除失敗，請稍後再試。");
+          if(btn) btn.disabled = false;
+          return;
         }
 
-        document.addEventListener("click", function(event) {
-            const menu = document.getElementById("userMenu");
-            const btn  = document.getElementById("userMenuButton");
-            if (menu && btn) {
-                if (!menu.contains(event.target) && !btn.contains(event.target)) {
-                    menu.style.display = "none";
-                }
-            }
+        removeMyCourseId(courseId);
+        showToast("已從個人課表移除", "已將此課程從你的個人課表移除。畫面將更新。");
+        setTimeout(()=>{ window.location.reload(); }, 600);
 
-            // ✅ 通知面板點外面關閉
-            const np = document.getElementById("notifPanel");
-            const nb = document.getElementById("notifButton");
-            if(np && nb){
-                if(!np.contains(event.target) && !nb.contains(event.target)){
-                    np.classList.remove("show");
-                }
-            }
+      }catch(err){
+        console.error(err);
+        alert("移除失敗（網路或伺服器錯誤）。");
+        if(btn) btn.disabled = false;
+      }
+    }
+
+    function injectMyCourseButtons(){
+      const isStudentMode = !!document.getElementById("searchFormStudent");
+      if(!isStudentMode) return;
+
+      if(!window.IS_AUTH || !window.IS_STUDENT) return;
+
+      document.querySelectorAll(".course-clickable").forEach(el=>{
+        const courseId = (el.dataset.id || "").trim();
+        if(!courseId) return;
+
+        if(el.dataset.myBtnInjected === "1") return;
+        el.dataset.myBtnInjected = "1";
+
+        const wrap = document.createElement("div");
+        wrap.className = "mini-actions";
+
+        const inMy = isMyCourseId(courseId);
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-mini " + (inMy ? "btn-remove" : "btn-add");
+        btn.textContent = inMy ? "移除課程" : "新增課程";
+        btn.setAttribute("data-btn-for", courseId);
+
+        btn.addEventListener("click", (ev)=>{
+          ev.stopPropagation();
+          if(isMyCourseId(courseId)){
+            handleRemoveCourse(el, courseId);
+          }else{
+            handleAddCourse(el, courseId);
+          }
         });
 
-        /* ===== Notification Bell ===== */
-        function updateNotifBadge(){
-            const badge = document.getElementById("notifBadge");
-            if(!badge) return;
-            const n = Array.isArray(window.NOTIFS) ? window.NOTIFS.length : 0;
-            if(n <= 0){
-                badge.style.display = "none";
-            }else{
-                badge.style.display = "inline-flex";
-                badge.textContent = (n > 9) ? "9+" : String(n);
-            }
+        wrap.appendChild(btn);
+        el.appendChild(wrap);
+      });
+
+      document.querySelectorAll(".cell-display").forEach(box=>{
+        if(box.dataset.myBtnInjected === "1") return;
+        box.dataset.myBtnInjected = "1";
+
+        const cellId = (box.id || "").replace(/_display$/, "");
+        const sel = document.getElementById(cellId + "_select");
+        if(!sel) return;
+
+        const wrap = document.createElement("div");
+        wrap.className = "mini-actions";
+
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn-mini btn-add";
+        btn.textContent = "新增課程";
+
+        function syncBtnState(){
+          const opt = sel.options[sel.selectedIndex];
+          if(!opt){ btn.disabled = true; return; }
+          const courseId = (opt.dataset.id || "").trim();
+          if(!courseId){ btn.disabled = true; return; }
+
+          if(isMyCourseId(courseId)){
+            btn.className = "btn-mini btn-remove";
+            btn.textContent = "移除課程";
+          }else{
+            btn.className = "btn-mini btn-add";
+            btn.textContent = "新增課程";
+          }
+          btn.disabled = false;
+          btn.setAttribute("data-btn-for", courseId);
         }
 
-        function renderNotifPanel(){
-            const list = document.getElementById("notifList");
-            if(!list) return;
-            const notifs = Array.isArray(window.NOTIFS) ? window.NOTIFS : [];
-            if(notifs.length === 0){
-                list.innerHTML = `<div class="p-4 text-sm text-zinc-500">目前沒有通知 ✨</div>`;
-                return;
-            }
-            list.innerHTML = notifs.slice().reverse().map(x => `
-                <div class="notif-item">
-                    <div class="t">${escapeHtml(x.title || "通知")}</div>
-                    <div class="m">${escapeHtml(x.message || "")}</div>
-                    <div class="meta">${escapeHtml(x.ts || "")}</div>
-                </div>
-            `).join("");
-        }
-
-        function toggleNotifPanel(){
-            const p = document.getElementById("notifPanel");
-            if(!p) return;
-            renderNotifPanel();
-            p.classList.toggle("show");
-        }
-
-        function clearNotifs(){
-            window.NOTIFS = [];
-            updateNotifBadge();
-            renderNotifPanel();
-        }
-
-        function addNotification(title, message){
-            window.NOTIFS = Array.isArray(window.NOTIFS) ? window.NOTIFS : [];
-            window.NOTIFS.push({
-                title: title || "通知",
-                message: message || "",
-                ts: new Date().toLocaleString()
-            });
-            updateNotifBadge();
-        }
-
-        /* ===== 原本工具（保留） ===== */
-        function escapeHtml(str){
-            if (str === null || str === undefined) return "";
-            return String(str)
-                .replaceAll("&","&amp;")
-                .replaceAll("<","&lt;")
-                .replaceAll(">","&gt;")
-                .replaceAll('"',"&quot;")
-                .replaceAll("'","&#039;");
-        }
-
-        function updateTimetableCell(cellId){
-            const sel = document.getElementById(cellId + "_select");
-            const box = document.getElementById(cellId + "_display");
-            if(!sel || !box) return;
-
-            const opt = sel.options[sel.selectedIndex];
-            const name = opt.dataset.name || "";
-            const dept = opt.dataset.dept || "";
-            const teacher = opt.dataset.teacher || "";
-            const rawRoom = opt.dataset.room || "";
-            const room = normalizeRoomText(rawRoom);
-
-            sel.title = name;
-
-            box.innerHTML =
-                `<div class="course-cell">${escapeHtml(name)}</div>` +
-                `<div class="course-room">${escapeHtml(dept)}</div>` +
-                `<div class="course-room">${escapeHtml(teacher)} ${escapeHtml(room)}</div>`;
-        }
-
-        function initCellSelects(){
-            document.querySelectorAll("select.cell-select").forEach(sel => {
-                const id = sel.id || "";
-                if (!id.endsWith("_select")) return;
-                const cellId = id.slice(0, -7);
-                sel.addEventListener("change", function(){
-                    updateTimetableCell(cellId);
-                });
-                updateTimetableCell(cellId);
-            });
-        }
-
-        function openTeacherDetailModal(data){
-            const m = document.getElementById("teacherDetailModal");
-            if(!m) return;
-            document.getElementById("td_name").textContent = data.name_ch || data.name || "-";
-            document.getElementById("td_category").textContent = data.category || "-";
-            document.getElementById("td_ext").textContent = data.ext || "-";
-            m.style.display = "flex";
-        }
-        function closeTeacherDetail(){
-            const m = document.getElementById("teacherDetailModal");
-            if(m) m.style.display = "none";
-        }
-
-        async function fetchTeacherInfoByName(name){
-            const q = encodeURIComponent(name || "");
-            const url = window.TEACHER_INFO_URL + `?name=${q}`;
-            const res = await fetch(url);
-            const data = await res.json().catch(()=>null);
-            return {res, data};
-        }
-
-        function openCourseDetail(payload){
-            const m = document.getElementById("courseDetailModal");
-            if (!m) return;
-
-            document.getElementById("cd_name").textContent = payload.name || "-";
-            document.getElementById("cd_dept").textContent = payload.dept || "-";
-            document.getElementById("cd_teacher").textContent = payload.teacher || "-";
-
-            const rawRoom = (payload.room ?? "").toString();
-            document.getElementById("cd_room").textContent = normalizeRoomText(rawRoom);
-
-            document.getElementById("cd_time").textContent = payload.time || "-";
-            document.getElementById("cd_week").textContent = payload.week || "-";
-            document.getElementById("cd_code").textContent = payload.code || "-";
-
-            const summaryEl = document.getElementById("cd_summary");
-            const rawSummary = (payload.summary ?? "").trim();
-            summaryEl.textContent = (!rawSummary || rawSummary === "-")
-                ? "老師於iclass宣布"
-                : rawSummary;
-
-            const meta = document.getElementById("cd_teacher_meta");
-            if(meta) meta.style.display = "none";
-
-            const btn = document.getElementById("cd_teacher_btn");
-            const teacherName = (payload.teacher || "").trim();
-            if(btn){
-                const hasTeacher = (teacherName !== "" && teacherName !== "-");
-                btn.disabled = !hasTeacher;
-                btn.onclick = async function(ev){
-                    ev.stopPropagation();
-                    if(!hasTeacher) return;
-                    try{
-                        const {res, data} = await fetchTeacherInfoByName(teacherName);
-                        if(!res.ok || !data || data.ok !== true){
-                            alert((data && data.message) ? data.message : "找不到教師資料");
-                            return;
-                        }
-                        openTeacherDetailModal(data);
-                    }catch(e){
-                        console.error(e);
-                        alert("讀取教師資料失敗（網路或伺服器錯誤）");
-                    }
-                };
-            }
-
-            const roomBtn = document.getElementById("cd_room_loc_btn");
-            if(roomBtn){
-                if(hasRealRoom(rawRoom)){
-                    roomBtn.style.display = "inline-flex";
-                    const q = encodeURIComponent("臺北護理健康大學 " + rawRoom.trim());
-                    const url = "https://www.google.com/maps/search/?api=1&query=" + q;
-                    roomBtn.onclick = () => window.open(url, "_blank", "noopener");
-                }else{
-                    roomBtn.style.display = "none";
-                    roomBtn.onclick = null;
-                }
-            }
-
-            m.style.display = "flex";
-        }
-
-        function closeCourseDetail(){
-            const m = document.getElementById("courseDetailModal");
-            if (m) m.style.display = "none";
-        }
-
-        function openCourseDetailFromEl(el){
-            if (!el) return;
-            const payload = {
-                id: el.dataset.id || "",
-                name: el.dataset.name || "",
-                dept: el.dataset.dept || "",
-                teacher: el.dataset.teacher || "",
-                room: el.dataset.room || "",
-                time: el.dataset.time || "",
-                week: el.dataset.week || "",
-                code: el.dataset.code || "",
-                summary: el.dataset.summary || "",
-            };
-            openCourseDetail(payload);
-        }
-
-        function bindCourseClick(){
-            document.querySelectorAll(".course-clickable").forEach(el => {
-                el.addEventListener("click", () => openCourseDetailFromEl(el));
-            });
-
-            document.querySelectorAll(".cell-display").forEach(box => {
-                box.style.cursor = "pointer";
-                box.addEventListener("click", () => {
-                    const cellId = (box.id || "").replace(/_display$/, "");
-                    const sel = document.getElementById(cellId + "_select");
-                    if (!sel) return;
-                    const opt = sel.options[sel.selectedIndex];
-                    if (!opt) return;
-                    openCourseDetail({
-                        id: opt.dataset.id || "",
-                        name: opt.dataset.name || "",
-                        dept: opt.dataset.dept || "",
-                        teacher: opt.dataset.teacher || "",
-                        room: opt.dataset.room || "",
-                        time: opt.dataset.time || "",
-                        week: opt.dataset.week || "",
-                        code: opt.dataset.code || "",
-                        summary: opt.dataset.summary || "",
-                    });
-                });
-            });
-        }
-
-        function getCookie(name){
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-            return "";
-        }
-
-        /* ✅ showToast：保留原本功能 + 同步寫入通知（給小鈴鐺） */
-        function showToast(title, msg){
-            addNotification(title, msg);
-
-            const t = document.getElementById("toast");
-            if(!t) return;
-            t.querySelector(".toast-title").textContent = title || "";
-            t.querySelector(".toast-msg").textContent = msg || "";
-            t.classList.add("show");
-        }
-        function hideToast(){
-            const t = document.getElementById("toast");
-            if(!t) return;
-            t.classList.remove("show");
-        }
-
-        function parseTimeSlots(timeStr){
-            const slots = [];
-            if(!timeStr) return slots;
-            const s = String(timeStr);
-
-            let day = null;
-            const mDay = s.match(/星期\s*([0-9])/);
-            if(mDay) day = parseInt(mDay[1], 10);
-
-            const mPer = s.match(/第\s*([0-9,\-\s]+)\s*節/);
-            if(mPer){
-                const raw = mPer[1].replaceAll(" ", "");
-                if(raw.includes(",")){
-                    raw.split(",").forEach(x=>{
-                        const p = parseInt(x,10);
-                        if(!Number.isNaN(p) && day) slots.push(`${day}-${p}`);
-                    });
-                } else if(raw.includes("-")){
-                    const [a,b] = raw.split("-").map(x=>parseInt(x,10));
-                    if(!Number.isNaN(a) && !Number.isNaN(b) && day){
-                        const start = Math.min(a,b), end = Math.max(a,b);
-                        for(let p=start; p<=end; p++) slots.push(`${day}-${p}`);
-                    }
-                } else {
-                    const p = parseInt(raw,10);
-                    if(!Number.isNaN(p) && day) slots.push(`${day}-${p}`);
-                }
-            } else {
-                const nums = s.match(/[0-9]+/g) || [];
-                if(nums.length >= 2){
-                    day = day ?? parseInt(nums[0],10);
-                    const p = parseInt(nums[1],10);
-                    if(!Number.isNaN(day) && !Number.isNaN(p)) slots.push(`${day}-${p}`);
-                }
-            }
-            return slots;
-        }
-
-        function buildMySlotSet(){
-            const set = new Set();
-
-            const personal = document.getElementById("personalScheduleModal");
-            if(personal){
-                personal.querySelectorAll(".course-clickable").forEach(el=>{
-                    const t = el.dataset.time || "";
-                    parseTimeSlots(t).forEach(k=>set.add(k));
-                });
-            }
-
-            document.querySelectorAll(".course-clickable").forEach(el=>{
-                const cid = (el.dataset.id || "").trim();
-                if(!cid) return;
-                if(Array.isArray(window.MY_COURSE_IDS) && window.MY_COURSE_IDS.includes(parseInt(cid,10))){
-                    const t = el.dataset.time || "";
-                    parseTimeSlots(t).forEach(k=>set.add(k));
-                }
-            });
-
-            return set;
-        }
-
-        function buildConflictMessage(conflicts){
-            const dayMap = {1:"一",2:"二",3:"三",4:"四",5:"五",6:"六",7:"日"};
-            const items = conflicts.map(k=>{
-                const [d,p] = k.split("-").map(x=>parseInt(x,10));
-                return `星期${dayMap[d] || d} 第${p}節`;
-            });
-            return items.join("、");
-        }
-
-        async function postToggleMyCourse(action, courseId){
-            const csrftoken = getCookie("csrftoken");
-            const form = new URLSearchParams();
-            form.append("action", action);
-            form.append("course_id", String(courseId));
-
-            const res = await fetch(window.location.pathname, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-                    "X-CSRFToken": csrftoken,
-                },
-                body: form.toString(),
-            });
-
-            let data = null;
-            const ct = (res.headers.get("content-type") || "").toLowerCase();
-            if(ct.includes("application/json")){
-                data = await res.json();
-            } else {
-                const txt = await res.text();
-                data = { ok: res.ok, message: txt };
-            }
-            return {res, data};
-        }
-
-        function isMyCourseId(courseId){
-            const cid = parseInt(courseId, 10);
-            if(Number.isNaN(cid)) return false;
-            if(!Array.isArray(window.MY_COURSE_IDS)) return false;
-            return window.MY_COURSE_IDS.includes(cid);
-        }
-
-        function addMyCourseId(courseId){
-            const cid = parseInt(courseId,10);
-            if(Number.isNaN(cid)) return;
-            if(!Array.isArray(window.MY_COURSE_IDS)) window.MY_COURSE_IDS = [];
-            if(!window.MY_COURSE_IDS.includes(cid)) window.MY_COURSE_IDS.push(cid);
-        }
-
-        function removeMyCourseId(courseId){
-            const cid = parseInt(courseId,10);
-            if(Number.isNaN(cid)) return;
-            if(!Array.isArray(window.MY_COURSE_IDS)) window.MY_COURSE_IDS = [];
-            window.MY_COURSE_IDS = window.MY_COURSE_IDS.filter(x => x !== cid);
-        }
-
-        async function handleAddCourse(el, courseId){
-            if(!window.IS_AUTH || !window.IS_STUDENT){
-                showToast("需要登入", "未登入狀態不能新增課程，請先以「學生」身分登入。");
-                openLogin();
-                return;
-            }
-
-            const mySet = buildMySlotSet();
-            const newSlots = parseTimeSlots(el.dataset.time || "");
-            const conflicts = newSlots.filter(k => mySet.has(k));
-
-            if(conflicts.length > 0){
-                showToast("無法新增", `此課程與你的個人課表衝堂：${buildConflictMessage(conflicts)}`);
-                return;
-            }
-
-            const btn = el.querySelector(`[data-btn-for="${courseId}"]`);
-            if(btn) btn.disabled = true;
-
-            try{
-                const {res, data} = await postToggleMyCourse("add_my_course", courseId);
-
-                if(res.status === 401 || res.status === 403){
-                    showToast("需要登入", (data && data.message) ? data.message : "請先以學生身分登入。");
-                    openLogin();
-                    if(btn) btn.disabled = false;
-                    return;
-                }
-
-                if(res.status === 409 && data && data.conflict){
-                    showToast("無法新增", data.message || "此課程與你的個人課表衝堂，無法新增。");
-                    if(btn) btn.disabled = false;
-                    return;
-                }
-
-                if(!res.ok || !data || data.ok === false){
-                    alert((data && data.message) ? data.message : "新增失敗，請稍後再試。");
-                    if(btn) btn.disabled = false;
-                    return;
-                }
-
-                addMyCourseId(courseId);
-                showToast("已新增到個人課表", "已將此課程加入你的個人課表。畫面將更新。");
-                setTimeout(()=>{ window.location.reload(); }, 600);
-
-            }catch(err){
-                console.error(err);
-                alert("新增失敗（網路或伺服器錯誤）。");
-                if(btn) btn.disabled = false;
-            }
-        }
-
-        async function handleRemoveCourse(el, courseId){
-            if(!window.IS_AUTH || !window.IS_STUDENT){
-                showToast("需要登入", "未登入狀態不能移除課程，請先以「學生」身分登入。");
-                openLogin();
-                return;
-            }
-
-            const ok = confirm("確定要從個人課表移除這門課嗎？");
-            if(!ok) return;
-
-            const btn = el.querySelector(`[data-btn-for="${courseId}"]`);
-            if(btn) btn.disabled = true;
-
-            try{
-                const {res, data} = await postToggleMyCourse("remove_my_course", courseId);
-
-                if(res.status === 401 || res.status === 403){
-                    showToast("需要登入", (data && data.message) ? data.message : "請先以學生身分登入。");
-                    openLogin();
-                    if(btn) btn.disabled = false;
-                    return;
-                }
-
-                if(!res.ok || !data || data.ok === false){
-                    alert((data && data.message) ? data.message : "移除失敗，請稍後再試。");
-                    if(btn) btn.disabled = false;
-                    return;
-                }
-
-                removeMyCourseId(courseId);
-                showToast("已從個人課表移除", "已將此課程從你的個人課表移除。畫面將更新。");
-                setTimeout(()=>{ window.location.reload(); }, 600);
-
-            }catch(err){
-                console.error(err);
-                alert("移除失敗（網路或伺服器錯誤）。");
-                if(btn) btn.disabled = false;
-            }
-        }
-
-        function injectMyCourseButtons(){
-            const isStudentMode = !!document.getElementById("searchFormStudent");
-            if(!isStudentMode) return;
-
-            if(!window.IS_AUTH || !window.IS_STUDENT) return;
-
-            document.querySelectorAll(".course-clickable").forEach(el=>{
-                const courseId = (el.dataset.id || "").trim();
-                if(!courseId) return;
-
-                if(el.dataset.myBtnInjected === "1") return;
-                el.dataset.myBtnInjected = "1";
-
-                const wrap = document.createElement("div");
-                wrap.className = "mini-actions";
-
-                const inMy = isMyCourseId(courseId);
-
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = "btn-mini " + (inMy ? "btn-remove" : "btn-add");
-                btn.textContent = inMy ? "移除課程" : "新增課程";
-                btn.setAttribute("data-btn-for", courseId);
-
-                btn.addEventListener("click", (ev)=>{
-                    ev.stopPropagation();
-                    if(isMyCourseId(courseId)){
-                        handleRemoveCourse(el, courseId);
-                    }else{
-                        handleAddCourse(el, courseId);
-                    }
-                });
-
-                wrap.appendChild(btn);
-                el.appendChild(wrap);
-            });
-
-            document.querySelectorAll(".cell-display").forEach(box=>{
-                if(box.dataset.myBtnInjected === "1") return;
-                box.dataset.myBtnInjected = "1";
-
-                const cellId = (box.id || "").replace(/_display$/, "");
-                const sel = document.getElementById(cellId + "_select");
-                if(!sel) return;
-
-                const wrap = document.createElement("div");
-                wrap.className = "mini-actions";
-
-                const btn = document.createElement("button");
-                btn.type = "button";
-                btn.className = "btn-mini btn-add";
-                btn.textContent = "新增課程";
-
-                function syncBtnState(){
-                    const opt = sel.options[sel.selectedIndex];
-                    if(!opt){ btn.disabled = true; return; }
-                    const courseId = (opt.dataset.id || "").trim();
-                    if(!courseId){ btn.disabled = true; return; }
-
-                    if(isMyCourseId(courseId)){
-                        btn.className = "btn-mini btn-remove";
-                        btn.textContent = "移除課程";
-                    }else{
-                        btn.className = "btn-mini btn-add";
-                        btn.textContent = "新增課程";
-                    }
-                    btn.disabled = false;
-                    btn.setAttribute("data-btn-for", courseId);
-                }
-
-                btn.addEventListener("click", (ev)=>{
-                    ev.stopPropagation();
-                    const opt = sel.options[sel.selectedIndex];
-                    if(!opt) return;
-                    const courseId = (opt.dataset.id || "").trim();
-                    if(!courseId) return;
-
-                    const fakeEl = { dataset: { time: opt.dataset.time || "" }, querySelector: ()=>btn };
-
-                    if(isMyCourseId(courseId)){
-                        handleRemoveCourse(fakeEl, courseId);
-                    }else{
-                        handleAddCourse(fakeEl, courseId);
-                    }
-                });
-
-                wrap.appendChild(btn);
-                box.appendChild(wrap);
-
-                sel.addEventListener("change", ()=>syncBtnState());
-                syncBtnState();
-            });
-        }
-
-        /* ✅ Dashboard / Favorites 內容生成（不改後端，從 DOM + MY_COURSE_IDS 取） */
-        function getResultCourseCards(){
-            const els = Array.from(document.querySelectorAll(".course-clickable"));
-            return els.map(el => ({
-                id: (el.dataset.id || "").trim(),
-                name: (el.dataset.name || "").trim() || el.textContent.trim(),
-                dept: (el.dataset.dept || "").trim(),
-                teacher: (el.dataset.teacher || "").trim(),
-                time: (el.dataset.time || "").trim(),
-                room: (el.dataset.room || "").trim(),
-                week: (el.dataset.week || "").trim(),
-                code: (el.dataset.code || "").trim(),
-                summary: (el.dataset.summary || "").trim(),
-                el: el
-            }));
-        }
-
-        function renderDashboard(){
-            const myCountEl = document.getElementById("dashMyCount");
-            const resultCountEl = document.getElementById("dashResultCount");
-            const modeEl = document.getElementById("dashMode");
-            const quickEl = document.getElementById("dashQuickList");
-
-            const myCount = Array.isArray(window.MY_COURSE_IDS) ? window.MY_COURSE_IDS.length : 0;
-            const resultCount = document.querySelectorAll(".course-clickable").length;
-
-            if(myCountEl) myCountEl.textContent = String(myCount);
-            if(resultCountEl) resultCountEl.textContent = String(resultCount);
-
-            if(modeEl){
-                if(window.IS_ADMIN_MODE) modeEl.textContent = "管理員模式";
-                else if(window.IS_AUTH) modeEl.textContent = window.IS_STUDENT ? "學生（可加入個人課表）" : "已登入（非學生）";
-                else modeEl.textContent = "未登入";
-            }
-
-            if(quickEl){
-                const items = [];
-                items.push({ t:"前往查詢條件", a: ()=> document.getElementById("searchFormStudent")?.scrollIntoView({behavior:"smooth"}) });
-                if(!window.IS_ADMIN_MODE){
-                    items.push({ t:"開啟我的課表", a: ()=> openMyScheduleEntry() });
-                }
-                if(window.IS_AUTH){
-                    items.push({ t:"開啟個人資料", a: ()=> openProfileModal() });
-                }else{
-                    items.push({ t:"登入（學生/管理員）", a: ()=> openLogin() });
-                }
-                items.push({ t:"檢視通知", a: ()=> { toggleNotifPanel(); } });
-
-                quickEl.innerHTML = items.map((x, idx)=>`
-                    <button type="button" class="w-full text-left px-3 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-50 font-extrabold text-sm text-zinc-800"
-                        onclick="(${x.a.toString()})()">
-                        ${escapeHtml(x.t)}
-                    </button>
-                `).join("");
-            }
-        }
-
-        function renderFavorites(){
-            const wrap = document.getElementById("favList");
-            const hint = document.getElementById("favHint");
-            if(!wrap) return;
-
-            // 這裡用「已加入個人課表的課」當作收藏清單（不改你的資料結構）
-            const all = getResultCourseCards();
-            const mySet = new Set((Array.isArray(window.MY_COURSE_IDS) ? window.MY_COURSE_IDS : []).map(x=>String(x)));
-
-            const favs = all.filter(x => x.id && mySet.has(String(parseInt(x.id,10))));
-
-            if(hint){
-                if(!window.IS_AUTH) hint.textContent = "未登入狀態：可瀏覽查詢結果，但收藏/我的課表需登入（學生）。";
-                else if(window.IS_ADMIN_MODE) hint.textContent = "管理員模式不提供收藏清單（此頁以學生個人課表為主）。";
-                else hint.textContent = "這裡顯示你已加入個人課表的課（可視為收藏清單）。";
-            }
-
-            if(favs.length === 0){
-                wrap.innerHTML = `
-                    <div class="text-sm text-zinc-500 py-3">
-                        目前沒有收藏（或你還沒把課加入個人課表）。<br/>
-                        你可以先在查詢結果裡按「新增課程」，再回來看收藏清單。
-                    </div>`;
-                return;
-            }
-
-            wrap.innerHTML = favs.map(c => `
-                <div class="p-3 rounded-2xl border border-emerald-100 hover:bg-emerald-50 transition-colors">
-                    <div class="flex items-start justify-between gap-3">
-                        <div>
-                            <div class="font-extrabold text-zinc-900">${escapeHtml(c.name || "-")}</div>
-                            <div class="text-xs text-zinc-500 mt-1">${escapeHtml(c.dept || "")} · ${escapeHtml(c.teacher || "")}</div>
-                            <div class="text-xs text-zinc-500 mt-1">${escapeHtml(c.time || "")} · ${escapeHtml(normalizeRoomText(c.room || ""))}</div>
-                        </div>
-                        <div class="flex gap-2">
-                            <button type="button"
-                                class="px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-600 text-white hover:brightness-95"
-                                onclick="openCourseDetailFromEl(document.querySelector('.course-clickable[data-id=\\'${escapeHtml(c.id)}\\']'))">
-                                詳細
-                            </button>
-                            <button type="button"
-                                class="px-3 py-2 rounded-xl text-xs font-extrabold bg-red-100 text-red-700 border border-red-200 hover:bg-red-200"
-                                onclick="(function(){
-                                    const el=document.querySelector('.course-clickable[data-id=\\'${escapeHtml(c.id)}\\']');
-                                    if(!el){ showToast('移除失敗','找不到此課程 DOM（可能不在本次查詢結果）。'); return; }
-                                    handleRemoveCourse(el,'${escapeHtml(c.id)}');
-                                })()">
-                                移除
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            `).join("");
-        }
-
-        document.addEventListener("DOMContentLoaded", function() {
-            {% if login_error %}
-                openLoginModalOnly();
-            {% endif %}
-            initCellSelects();
-            bindCourseClick();
-            injectMyCourseButtons();
-
-            // ✅ 初始化通知徽章
-            updateNotifBadge();
+        btn.addEventListener("click", (ev)=>{
+          ev.stopPropagation();
+          const opt = sel.options[sel.selectedIndex];
+          if(!opt) return;
+          const courseId = (opt.dataset.id || "").trim();
+          if(!courseId) return;
+
+          const fakeEl = { dataset: { time: opt.dataset.time || "" }, querySelector: ()=>btn };
+
+          if(isMyCourseId(courseId)){
+            handleRemoveCourse(fakeEl, courseId);
+          }else{
+            handleAddCourse(fakeEl, courseId);
+          }
         });
-    </script>
+
+        wrap.appendChild(btn);
+        box.appendChild(wrap);
+
+        sel.addEventListener("change", ()=>syncBtnState());
+        syncBtnState();
+      });
+    }
+
+    /* ===== 新增：總覽儀表板 / 通知 / 收藏 功能（不動既有邏輯） ===== */
+
+    function openDashboardModal(){
+      const m = document.getElementById("dashboardModal");
+      if(!m) return;
+      renderDashboard();
+      m.style.display = "flex";
+    }
+    function closeDashboardModal(){
+      const m = document.getElementById("dashboardModal");
+      if(m) m.style.display = "none";
+    }
+
+    function toggleNotifPanel(){
+      const p = document.getElementById("notifPanel");
+      if(!p) return;
+      p.style.display = (p.style.display === "block") ? "none" : "block";
+    }
+
+    function openBookmarksModal(){
+      const m = document.getElementById("bookmarksModal");
+      if(!m) return;
+      m.style.display = "flex";
+    }
+    function closeBookmarksModal(){
+      const m = document.getElementById("bookmarksModal");
+      if(m) m.style.display = "none";
+    }
+
+    function openMyScheduleEntry(){
+      // Sidebar / Dashboard 快捷鍵的入口
+      if(!window.IS_AUTH){
+        showToast("需要登入", "未登入狀態無法查看個人課表，請先登入。");
+        openLogin();
+        return;
+      }
+      if(window.IS_ADMIN_MODE){
+        showToast("管理員模式", "管理員模式不提供個人課表。");
+        return;
+      }
+      openPersonalScheduleModal();
+    }
+
+    /* 修正你截圖那個問題：從儀表板點快捷鍵時，先關儀表板再開其他內容 */
+    function dashAction(action){
+      closeDashboardModal();
+      setTimeout(() => {
+        switch(action){
+          case "scrollSearch":
+            (document.getElementById("searchFormStudent") || document.getElementById("searchFormAdmin"))
+              ?.scrollIntoView({ behavior: "smooth" });
+            break;
+          case "openSchedule":
+            openMyScheduleEntry();
+            break;
+          case "openProfile":
+            if(window.IS_AUTH) openProfileModal();
+            else { showToast("需要登入", "請先登入後再開啟個人資料。"); openLogin(); }
+            break;
+          case "openLogin":
+            openLogin();
+            break;
+          case "openNotif":
+            toggleNotifPanel();
+            break;
+          case "openBookmarks":
+            openBookmarksModal();
+            break;
+        }
+      }, 0);
+    }
+
+    function renderDashboard(){
+      const myCountEl = document.getElementById("dash_my_count");
+      const resultCountEl = document.getElementById("dash_result_count");
+      const modeEl = document.getElementById("dash_mode");
+      const quickEl = document.getElementById("dash_quick");
+
+      const myCount = Array.isArray(window.MY_COURSE_IDS) ? window.MY_COURSE_IDS.length : 0;
+      const resultCount = document.querySelectorAll(".course-clickable").length;
+
+      if(myCountEl) myCountEl.textContent = String(myCount);
+      if(resultCountEl) resultCountEl.textContent = String(resultCount);
+
+      let modeText = "未登入";
+      if(window.IS_AUTH){
+        if(window.IS_ADMIN_MODE) modeText = "管理員（課程管理）";
+        else if(window.IS_STUDENT) modeText = "學生（可加入個人課表）";
+        else modeText = "已登入（非學生身分）";
+      }
+      if(modeEl) modeEl.textContent = modeText;
+
+      if(quickEl){
+        const buttons = [];
+        buttons.push({ text: "前往查詢條件", action: "scrollSearch" });
+        if(!window.IS_ADMIN_MODE) buttons.push({ text: "開啟我的課表", action: "openSchedule" });
+        if(window.IS_AUTH) buttons.push({ text: "開啟個人資料", action: "openProfile" });
+        else buttons.push({ text: "登入（學生/管理員）", action: "openLogin" });
+        buttons.push({ text: "檢視通知", action: "openNotif" });
+        buttons.push({ text: "開啟收藏清單", action: "openBookmarks" });
+
+        quickEl.innerHTML = buttons.map(b => `
+          <button type="button"
+            class="w-full text-left px-3 py-2 rounded-xl border border-emerald-100 hover:bg-emerald-50 font-extrabold text-sm text-zinc-800"
+            onclick="dashAction('${b.action}')">
+            ${escapeHtml(b.text)}
+          </button>
+        `).join("");
+      }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+      {% if login_error %}
+        openLoginModalOnly();
+      {% endif %}
+      initCellSelects();
+      bindCourseClick();
+      injectMyCourseButtons();
+    });
+  </script>
 </head>
 
-<body class="min-h-screen flex bg-emerald-50 text-zinc-800 antialiased selection:bg-emerald-100 selection:text-emerald-900">
+<body class="bg-white text-zinc-800 antialiased min-h-screen flex selection:bg-emerald-50 selection:text-emerald-900">
 
-    <!-- Sidebar -->
-    <aside class="w-64 border-r border-emerald-100 fixed inset-y-0 left-0 hidden md:flex flex-col bg-white z-50">
-        <div class="h-16 flex items-center px-6 border-b border-emerald-50">
-            <div class="flex items-center gap-2 text-emerald-900">
-                <div class="w-7 h-7 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-lg flex items-center justify-center text-white shadow-sm">
-                    <span class="text-xs font-extrabold">U</span>
-                </div>
-                <span class="font-extrabold tracking-tight text-lg">UNISCHEDULE</span>
-            </div>
+  <!-- Sidebar -->
+  <aside class="w-64 border-r border-zinc-100 fixed inset-y-0 left-0 hidden md:flex flex-col bg-white z-50">
+    <div class="h-16 flex items-center px-6 border-b border-zinc-50">
+      <div class="flex items-center gap-2 text-zinc-900">
+        <div class="w-6 h-6 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-md flex items-center justify-center text-white">
+          <span class="text-xs font-extrabold">U</span>
         </div>
-
-        <nav class="flex-1 px-3 py-6 space-y-0.5">
-            <a href="javascript:void(0)"
-               onclick="openDashboardModal()"
-               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
-                <iconify-icon icon="solar:home-smile-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
-                總覽儀表板
-            </a>
-
-            <a href="javascript:void(0)"
-               class="flex items-center gap-3 px-3 py-2 text-sm font-extrabold text-emerald-800 bg-emerald-50 rounded-xl">
-                <iconify-icon icon="solar:magnifer-linear" width="20" class="text-emerald-600"></iconify-icon>
-                課程查詢
-            </a>
-
-            <a href="javascript:void(0)"
-               onclick="openMyScheduleEntry()"
-               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
-                <iconify-icon icon="solar:calendar-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
-                我的課表
-            </a>
-
-            <a href="javascript:void(0)"
-               onclick="openFavoritesModal()"
-               class="flex items-center gap-3 px-3 py-2 text-sm text-zinc-500 rounded-xl hover:bg-emerald-50 hover:text-emerald-900 transition-colors group">
-                <iconify-icon icon="solar:bookmark-linear" width="20" class="text-zinc-400 group-hover:text-emerald-700"></iconify-icon>
-                收藏清單
-            </a>
-        </nav>
-
-        <div class="p-4 border-t border-emerald-100">
-            <div class="flex items-center gap-3 px-2 py-2 rounded-2xl hover:bg-emerald-50 cursor-pointer transition-colors"
-                 onclick="{% if user.is_authenticated %}openProfileModal(){% else %}openLogin(){% endif %}">
-                <div class="w-9 h-9 rounded-full bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-700 text-xs font-extrabold">
-                    {% if user.is_authenticated %}
-                        {{ display_name|default:user.username|slice:":2" }}
-                    {% else %}
-                        HI
-                    {% endif %}
-                </div>
-                <div class="flex flex-col">
-                    <span class="text-sm font-extrabold text-zinc-900">
-                        {% if user.is_authenticated %}
-                            {{ display_name|default:user.username }}
-                        {% else %}
-                            未登入
-                        {% endif %}
-                    </span>
-                    <span class="text-xs text-zinc-400">
-                        {% if user.is_authenticated %}
-                            {{ role_name|default:"-" }}
-                        {% else %}
-                            點此登入以使用更多功能
-                        {% endif %}
-                    </span>
-                </div>
-            </div>
-        </div>
-    </aside>
-
-    <!-- Main -->
-    <main class="md:ml-64 flex-1 min-h-screen relative">
-
-        <!-- Top Header -->
-        <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-emerald-100 px-6 h-16 flex items-center justify-between">
-            <div class="flex items-center gap-4">
-                <h1 class="text-base font-extrabold text-zinc-900 tracking-tight">課程查詢系統</h1>
-                <div class="h-4 w-px bg-emerald-200"></div>
-                <span class="text-sm text-zinc-500">
-                    {% if admin_mode %}管理員模式{% else %}學生/一般查詢{% endif %}
-                </span>
-            </div>
-
-            <div class="flex items-center gap-3">
-                <!-- ✅ 小鈴鐺有內容：通知面板 -->
-                <div class="notif-wrap">
-                    <button id="notifButton"
-                            class="relative p-2 text-zinc-400 hover:text-emerald-700 transition-colors"
-                            type="button"
-                            onclick="toggleNotifPanel()">
-                        <iconify-icon icon="solar:bell-linear" width="20"></iconify-icon>
-                        <span id="notifBadge"
-                              class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-emerald-600 text-white text-[10px] font-extrabold flex items-center justify-center border-2 border-white">
-                            0
-                        </span>
-                    </button>
-
-                    <div class="notif-panel" id="notifPanel">
-                        <div class="notif-head">
-                            <div class="notif-title">通知中心</div>
-                            <div class="notif-actions">
-                                <button type="button" class="notif-btn" onclick="clearNotifs()">清空</button>
-                                <button type="button" class="notif-btn" onclick="toggleNotifPanel()">關閉</button>
-                            </div>
-                        </div>
-                        <div class="notif-list" id="notifList"></div>
-                    </div>
-                </div>
-
-                {% if user.is_authenticated %}
-                    <div class="user-menu-wrapper">
-                        <button id="userMenuButton" class="btn user-menu-button" type="button" onclick="toggleUserMenu()">
-                            <iconify-icon icon="solar:user-circle-linear" width="18"></iconify-icon>
-                            {{ display_name|default:user.username }} 您好
-                        </button>
-
-                        <div class="user-menu" id="userMenu">
-                            <div class="user-menu-item user-menu-item-hello">
-                                {{ display_name|default:user.username }} 你好
-                            </div>
-
-                            <button type="button" class="user-menu-item" onclick="openProfileModal()">個人資料管理</button>
-
-                            {% if not admin_mode %}
-                            <button type="button" class="user-menu-item" onclick="openPersonalScheduleModal()">個人課表</button>
-                            {% endif %}
-
-                            <form method="post" action="{% url 'logout' %}">
-                                {% csrf_token %}
-                                <button type="submit" class="user-menu-item user-menu-item-logout">登出</button>
-                            </form>
-                        </div>
-                    </div>
-                {% else %}
-                    <button class="btn btn-login" type="button" onclick="openLogin()">
-                        <iconify-icon icon="solar:login-2-linear" width="18"></iconify-icon>
-                        登入
-                    </button>
-                {% endif %}
-            </div>
-        </header>
-
-        <!-- Content -->
-        <div class="p-6 max-w-7xl mx-auto space-y-6">
-
-            <!-- 查詢條件 -->
-            <div class="card">
-                <div class="card-header">
-                    <div>
-                        <div class="card-title">查詢條件</div>
-                        <div class="card-desc">選擇條件後查詢課表（查詢結果保留你原本的課表表格）</div>
-                    </div>
-                </div>
-
-                {% if admin_mode %}
-                    <form id="searchFormAdmin" method="get" onsubmit="return checkSearchConditionsAdmin();">
-                        <input type="hidden" name="submitted" value="1">
-
-                        <div class="form-item" style="max-width:520px;">
-                            <div class="form-label">學期</div>
-                            <div class="field">
-                                <select class="dropdown" name="semester">
-                                    <option value="" {% if not semester %}selected{% endif %}>請選擇</option>
-                                    <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
-                                    <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn btn-primary" type="submit">
-                                <iconify-icon icon="solar:eye-linear" width="18"></iconify-icon>
-                                檢視課程
-                            </button>
-                        </div>
-                    </form>
-                {% else %}
-                    <form id="searchFormStudent" method="get" onsubmit="return checkSearchConditionsStudent();">
-                        <input type="hidden" name="submitted" value="1">
-
-                        <div class="form-grid">
-                            <div>
-                                <div class="form-item">
-                                    <div class="form-label">學期</div>
-                                    <div class="field">
-                                        <select class="dropdown" name="semester">
-                                            <option value="" {% if not semester %}selected{% endif %}>全部</option>
-                                            <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
-                                            <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">學制</div>
-                                    <div class="field">
-                                        <select class="dropdown" name="system">
-                                            <option value="" {% if not system %}selected{% endif %}>全部</option>
-                                            <option value="二專" {% if system == "二專" %}selected{% endif %}>二專</option>
-                                            <option value="二技" {% if system == "二技" %}selected{% endif %}>二技</option>
-                                            <option value="二技(三年)" {% if system == "二技(三年)" %}selected{% endif %}>二技(三年)</option>
-                                            <option value="四技" {% if system == "四技" %}selected{% endif %}>四技</option>
-                                            <option value="學士後多元專長" {% if system == "學士後多元專長" %}selected{% endif %}>學士後多元專長</option>
-                                            <option value="碩士班" {% if system == "碩士班" %}selected{% endif %}>碩士班</option>
-                                            <option value="博士班" {% if system == "博士班" %}selected{% endif %}>博士班</option>
-                                            <option value="學士後學位學程" {% if system == "學士後學位學程" %}selected{% endif %}>學士後學位學程</option>
-                                            <option value="學士後系" {% if system == "學士後系" %}selected{% endif %}>學士後系</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">年級</div>
-                                    <div class="field">
-                                        <select class="dropdown" name="grade">
-                                            <option value="" {% if not grade %}selected{% endif %}>全部</option>
-                                            <option value="1" {% if grade == "1" %}selected{% endif %}>一年級</option>
-                                            <option value="2" {% if grade == "2" %}selected{% endif %}>二年級</option>
-                                            <option value="3" {% if grade == "3" %}selected{% endif %}>三年級</option>
-                                            <option value="4" {% if grade == "4" %}selected{% endif %}>四年級</option>
-                                        </select>
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">科系</div>
-                                    <div class="field">
-                                        <select class="dropdown" name="department">
-                                            <option value="" {% if not department %}selected{% endif %}>全部</option>
-                                            <option value="22140" {% if department == "22140" %}selected{% endif %}>資訊管理系</option>
-                                            <option value="11140" {% if department == "11140" %}selected{% endif %}>護理系</option>
-                                            <option value="21140" {% if department == "21140" %}selected{% endif %}>健康事業管理系</option>
-                                            <option value="24120" {% if department == "24120" %}selected{% endif %}>長期照護系</option>
-                                            <option value="13140" {% if department == "13140" %}selected{% endif %}>高齡健康照護系</option>
-                                            <option value="31140" {% if department == "31140" %}selected{% endif %}>嬰幼兒保育系</option>
-                                            <option value="25140" {% if department == "25140" %}selected{% endif %}>語言治療與聽力學系</option>
-                                            <option value="23140" {% if department == "23140" %}selected{% endif %}>休閒產業與健康促進系</option>
-                                            <option value="32140" {% if department == "32140" %}selected{% endif %}>運動保健系</option>
-                                            <option value="33140" {% if department == "33140" %}selected{% endif %}>生死與健康心理諮商系</option>
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div>
-                                <div class="form-item">
-                                    <div class="form-label">老師</div>
-                                    <div class="field">
-                                        <input class="text-input" type="text" name="teacher" placeholder="輸入老師名稱" value="{{ teacher }}">
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">課程</div>
-                                    <div class="field">
-                                        <input class="text-input" type="text" name="course_name" placeholder="輸入課程名稱" value="{{ course_name }}">
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">代碼</div>
-                                    <div class="field">
-                                        <input class="text-input" type="text" name="course_code" placeholder="Ex: 43160185501110" value="{{ course_code }}">
-                                    </div>
-                                </div>
-
-                                <div class="form-item">
-                                    <div class="form-label">課別</div>
-                                    <div class="field">
-                                        <select class="dropdown" name="class_type">
-                                            <option value="" {% if not class_type %}selected{% endif %}>全部</option>
-                                            {% for opt in class_type_options %}
-                                                <option value="{{ opt }}" {% if class_type == opt %}selected{% endif %}>{{ opt }}</option>
-                                            {% endfor %}
-                                        </select>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="section-divider"></div>
-
-                        <div class="day-row">
-                            <div class="day-label-text">星期</div>
-                            <div class="day-select">
-                                <label><input type="checkbox" name="day" value="1" {% if "1" in days_selected %}checked{% endif %}><span class="day-box">一</span></label>
-                                <label><input type="checkbox" name="day" value="2" {% if "2" in days_selected %}checked{% endif %}><span class="day-box">二</span></label>
-                                <label><input type="checkbox" name="day" value="3" {% if "3" in days_selected %}checked{% endif %}><span class="day-box">三</span></label>
-                                <label><input type="checkbox" name="day" value="4" {% if "4" in days_selected %}checked{% endif %}><span class="day-box">四</span></label>
-                                <label><input type="checkbox" name="day" value="5" {% if "5" in days_selected %}checked{% endif %}><span class="day-box">五</span></label>
-                                <label><input type="checkbox" name="day" value="6" {% if "6" in days_selected %}checked{% endif %}><span class="day-box">六</span></label>
-                                <label><input type="checkbox" name="day" value="7" {% if "7" in days_selected %}checked{% endif %}><span class="day-box">日</span></label>
-                            </div>
-                        </div>
-
-                        <div class="period-row">
-                            <div class="period-label-text">節次</div>
-                            <div class="period-group">
-                                {% for p in period_range %}
-                                <label class="period-box">
-                                    <input type="checkbox" name="period" value="{{ p }}" {% if p in periods_selected_int %}checked{% endif %}>
-                                    <span>{{ p }}</span>
-                                </label>
-                                {% endfor %}
-                            </div>
-                        </div>
-
-                        <div class="form-actions">
-                            <button class="btn btn-cancel" type="button" onclick="clearFiltersStudent()">
-                                <iconify-icon icon="solar:eraser-linear" width="18"></iconify-icon>
-                                清除
-                            </button>
-                            <button class="btn btn-primary" type="submit">
-                                <iconify-icon icon="solar:magnifer-linear" width="18"></iconify-icon>
-                                查詢
-                            </button>
-                        </div>
-                    </form>
-                {% endif %}
-            </div>
-
-            <!-- 查詢結果（保留課表表格） -->
-            <div class="card">
-                <div class="card-header">
-                    <div class="card-title">查詢結果</div>
-
-                    {% if not admin_mode %}
-                      {% if role_name != "學生" %}
-                        <div class="card-desc">只有學生身分可新增/移除個人課表課程</div>
-                      {% endif %}
-                    {% endif %}
-                </div>
-
-                {% if admin_mode %}
-                    {% if not semester or not request.GET.submitted %}
-                        <div class="no-result">請選擇學期後按「檢視課程」。</div>
-                    {% else %}
-                        <div class="timetable-wrapper">
-                            <div class="timetable-title">授課教師：連中岳（課程列表）</div>
-
-                            {% if admin_courses %}
-                                <table class="timetable">
-                                    <tr>
-                                        <th>學期</th>
-                                        <th>系所</th>
-                                        <th>年級</th>
-                                        <th>班組</th>
-                                        <th>課別</th>
-                                        <th>科目名稱</th>
-                                        <th>時間</th>
-                                        <th>教室</th>
-                                        <th class="op-col">操作</th>
-                                    </tr>
-
-                                    {% for c in admin_courses %}
-                                    <tr>
-                                        <td>{{ c.semester|default:"-" }}</td>
-                                        <td>{{ c.dept_name|default:c.department_code|default:"-" }}</td>
-                                        <td>{{ c.grade|default:"-" }}</td>
-                                        <td>{{ c.class_group|default:"-" }}</td>
-                                        <td>{{ c.division|default:"-" }}</td>
-                                        <td>
-                                          <div class="course-cell course-clickable"
-                                             data-id="{{ c.id }}"
-                                             data-name="{{ c.course_name|default:'-'|escapejs }}"
-                                             data-dept="{{ c.dept_name|default:c.department_code|default:'-'|escapejs }}"
-                                             data-teacher="{{ c.teacher|default:'-'|escapejs }}"
-                                             data-room="{{ c.classroom|default:'-'|escapejs }}"
-                                             data-time="星期{{ c.day|default:'-' }} 第{{ c.period|default:'-' }}節{% if c.week_info %}（{{ c.week_info }}）{% endif %}"
-                                             data-week="{{ c.week_info|default:''|escapejs }}"
-                                             data-code="{{ c.course_code|default:''|escapejs }}"
-                                             data-summary="{{ c.course_summary_ch|default:''|escapejs }}"
-                                             style="cursor:pointer;">
-                                           {{ c.course_name|default:"-" }}
-                                          </div>
-                                        </td>
-                                        <td>星期{{ c.day }} 第{{ c.period }}節</td>
-                                        <td>
-                                            {% if c.classroom and c.classroom != "-" %}
-                                                {{ c.classroom }}
-                                            {% else %}
-                                                老師於iclass宣布
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <form method="post" action="{% url 'delete_course' c.id %}" style="margin:0;"
-                                                  onsubmit="return confirm('確定要刪除【{{ c.course_name }}】嗎？');">
-                                                {% csrf_token %}
-                                                <button class="btn btn-danger" type="submit">刪除</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </table>
-                            {% else %}
-                                <div class="no-result">查無「連中岳」老師在此學期的課程資料。</div>
-                            {% endif %}
-
-                            <div class="form-actions" style="margin-top:14px;">
-                                <a class="btn btn-primary" href="{% url 'add_course' %}?semester={{ semester|default:'1141' }}">新增課程</a>
-                            </div>
-                        </div>
-                    {% endif %}
-                {% else %}
-                    {{ timetable_html|safe }}
-                {% endif %}
-            </div>
-        </div>
-    </main>
-
-    <!-- Toast -->
-    <div class="toast" id="toast">
-        <div class="toast-title">提示</div>
-        <div class="toast-msg">-</div>
-        <div class="toast-actions">
-            <button type="button" class="toast-btn toast-btn-close" onclick="hideToast()">關閉</button>
-            <button type="button" class="toast-btn toast-btn-ok" onclick="hideToast()">知道了</button>
-        </div>
+        <span class="font-extrabold tracking-tight text-lg">UNISCHEDULE</span>
+      </div>
     </div>
 
-    <!-- ✅ Dashboard Modal -->
-    <div class="modal-bg" id="dashboardModal">
-        <div class="modal personal-modal" style="width:880px; max-width:95vw;">
-            <div class="personal-header">
-                <div class="personal-title">總覽儀表板</div>
-                <button type="button" class="personal-close" onclick="closeDashboardModal()">✕</button>
-            </div>
+    <nav class="flex-1 px-3 py-6 space-y-0.5">
+      <button type="button"
+              class="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 rounded-md hover:bg-emerald-50 hover:text-zinc-900 transition-colors group text-left"
+              onclick="openDashboardModal()">
+        <iconify-icon icon="solar:home-smile-linear" width="20" class="text-emerald-500"></iconify-icon>
+        總覽儀表板
+      </button>
 
-            <div class="detail-box">
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-emerald-50">
-                        <div class="text-xs font-extrabold text-emerald-700">我的課表已加入</div>
-                        <div class="text-3xl font-black text-zinc-900 mt-1" id="dashMyCount">0</div>
-                    </div>
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-white">
-                        <div class="text-xs font-extrabold text-emerald-700">本次查詢結果課程數</div>
-                        <div class="text-3xl font-black text-zinc-900 mt-1" id="dashResultCount">0</div>
-                    </div>
-                    <div class="p-4 rounded-2xl border border-emerald-100 bg-white">
-                        <div class="text-xs font-extrabold text-emerald-700">目前模式</div>
-                        <div class="text-lg font-black text-zinc-900 mt-2" id="dashMode">-</div>
-                    </div>
-                </div>
+      <a href="#"
+         class="flex items-center gap-3 px-3 py-2 text-sm font-extrabold text-emerald-700 bg-emerald-50 rounded-md">
+        <iconify-icon icon="solar:magnifer-linear" width="20" class="text-emerald-600"></iconify-icon>
+        課程查詢
+      </a>
 
-                <div class="detail-divider"></div>
+      <button type="button"
+              class="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 rounded-md hover:bg-emerald-50 hover:text-zinc-900 transition-colors group text-left"
+              onclick="openMyScheduleEntry()">
+        <iconify-icon icon="solar:calendar-linear" width="20" class="text-teal-500"></iconify-icon>
+        我的課表
+      </button>
 
-                <div class="detail-subtitle">快速操作</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-3" id="dashQuickList"></div>
+      <button type="button"
+              class="w-full flex items-center gap-3 px-3 py-2 text-sm text-zinc-600 rounded-md hover:bg-emerald-50 hover:text-zinc-900 transition-colors group text-left"
+              onclick="openBookmarksModal()">
+        <iconify-icon icon="solar:bookmark-linear" width="20" class="text-emerald-500"></iconify-icon>
+        收藏清單
+      </button>
+    </nav>
 
-                <div class="modal-actions" style="justify-content:flex-end; margin-top:14px;">
-                    <button type="button" class="btn btn-cancel" onclick="closeDashboardModal()">關閉</button>
-                </div>
-            </div>
-        </div>
+    <div class="p-4 border-t border-zinc-100">
+      <div class="text-xs text-zinc-400">Course Inquiry System</div>
     </div>
+  </aside>
 
-    <!-- ✅ Favorites Modal -->
-    <div class="modal-bg" id="favoritesModal">
-        <div class="modal personal-modal" style="width:920px; max-width:95vw;">
-            <div class="personal-header">
-                <div class="personal-title">收藏清單</div>
-                <button type="button" class="personal-close" onclick="closeFavoritesModal()">✕</button>
-            </div>
+  <!-- Main -->
+  <main class="md:ml-64 flex-1 min-h-screen bg-white relative">
 
-            <div class="detail-box">
-                <div class="text-sm text-zinc-500 mb-3" id="favHint">-</div>
-                <div class="space-y-3" id="favList"></div>
+    <!-- Sticky Header -->
+    <header class="sticky top-0 z-40 bg-white/80 backdrop-blur-md border-b border-zinc-100 px-6 h-16 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 class="text-base font-extrabold text-zinc-900 tracking-tight">課程查詢系統</h1>
+        <div class="h-4 w-px bg-zinc-200"></div>
+        <span class="text-sm text-zinc-500 font-semibold">
+          {% if admin_mode %}管理員模式{% else %}學生查詢{% endif %}
+        </span>
+      </div>
 
-                <div class="modal-actions" style="justify-content:flex-end; margin-top:14px;">
-                    <button type="button" class="btn btn-cancel" onclick="closeFavoritesModal()">關閉</button>
-                </div>
-            </div>
-        </div>
-    </div>
+      <div class="flex items-center gap-3">
+        <!-- 通知鈴鐺：有內容（面板） -->
+        <button id="notifBellBtn" type="button"
+                class="relative p-2 rounded-xl text-zinc-500 hover:text-zinc-900 hover:bg-emerald-50 transition"
+                onclick="toggleNotifPanel()">
+          <iconify-icon icon="solar:bell-linear" width="22"></iconify-icon>
+          <span class="absolute top-1.5 right-1.5 w-2.5 h-2.5 bg-rose-500 rounded-full border-2 border-white"></span>
+        </button>
 
-    <!-- 課程詳細資料 -->
-    <div class="modal-bg" id="courseDetailModal">
-        <div class="modal personal-modal" style="width:820px; max-width:95vw;">
-            <div class="personal-header">
-                <div class="personal-title">課程詳細資料</div>
-                <button type="button" class="personal-close" onclick="closeCourseDetail()">✕</button>
-            </div>
+        {% if user.is_authenticated %}
+          <div class="user-menu-wrapper">
+            <button id="userMenuButton" class="btn user-menu-button" type="button" onclick="toggleUserMenu()">
+              {{ display_name|default:user.username }} 您好
+            </button>
 
-            <div class="detail-box">
-                <div class="detail-title">課程詳細資料</div>
-                <div class="detail-grid">
-                    <div class="detail-label">科目名稱</div><div class="detail-value" id="cd_name">-</div>
-                    <div class="detail-label">系所</div><div class="detail-value" id="cd_dept">-</div>
+            <div class="user-menu" id="userMenu">
+              <div class="user-menu-item user-menu-item-hello">
+                {{ display_name|default:user.username }} 你好
+              </div>
 
-                    <div class="detail-label">授課教師</div>
-                    <div class="detail-value">
-                        <button type="button" id="cd_teacher_btn" class="teacher-link">
-                            <span id="cd_teacher">-</span>
-                        </button>
+              <button type="button" class="user-menu-item" onclick="openProfileModal()">個人資料管理</button>
 
-                        <div class="teacher-meta" id="cd_teacher_meta" style="display:none;">
-                            <span class="chip"><span class="k">中文姓名</span><span id="cd_teacher_ch">-</span></span>
-                            <span class="chip"><span class="k">類別</span><span id="cd_teacher_cat">-</span></span>
-                            <span class="chip"><span class="k">校內分機</span><span id="cd_teacher_ext">-</span></span>
-                        </div>
-                    </div>
+              {% if not admin_mode %}
+              <button type="button" class="user-menu-item" onclick="openPersonalScheduleModal()">個人課表</button>
+              {% endif %}
 
-                    <div class="detail-label">教室</div>
-                    <div class="detail-value">
-                        <span id="cd_room">-</span>
-                        <button type="button" id="cd_room_loc_btn" class="room-loc-btn">教室大樓位置</button>
-                    </div>
-
-                    <div class="detail-label">時間</div><div class="detail-value" id="cd_time">-</div>
-                    <div class="detail-label">上課週次</div><div class="detail-value" id="cd_week">-</div>
-                    <div class="detail-label">科目代碼</div><div class="detail-value" id="cd_code">-</div>
-                </div>
-
-                <div class="detail-divider"></div>
-
-                <div class="detail-subtitle">課程摘要</div>
-                <div class="detail-summary" id="cd_summary">-</div>
-
-                <div class="modal-actions" style="justify-content:flex-end; margin-top:12px;">
-                    <button type="button" class="btn btn-cancel" onclick="closeCourseDetail()">關閉</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 教師資料 -->
-    <div class="modal-bg" id="teacherDetailModal">
-        <div class="modal personal-modal" style="width:520px; max-width:95vw;">
-            <div class="personal-header">
-                <div class="personal-title">教師資料</div>
-                <button type="button" class="personal-close" onclick="closeTeacherDetail()">✕</button>
-            </div>
-
-            <div class="detail-box">
-                <div class="detail-title">教師資料</div>
-                <div class="detail-grid">
-                    <div class="detail-label">中文姓名</div><div class="detail-value" id="td_name">-</div>
-                    <div class="detail-label">類別</div><div class="detail-value" id="td_category">-</div>
-                    <div class="detail-label">校內分機</div><div class="detail-value" id="td_ext">-</div>
-                </div>
-
-                <div class="modal-actions" style="justify-content:flex-end; margin-top:12px;">
-                    <button type="button" class="btn btn-cancel" onclick="closeTeacherDetail()">關閉</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- 身分選擇 -->
-    <div class="modal-bg" id="roleModal">
-        <div class="modal">
-            <div class="modal-title">請選擇身分</div>
-            <div class="modal-actions">
-                <button class="role-btn" type="button" onclick="selectRole('admin')">管理員</button>
-                <button class="role-btn" type="button" onclick="selectRole('student')">學生</button>
-                <button class="role-btn" type="button" onclick="closeRoleModal()">取消</button>
-            </div>
-        </div>
-    </div>
-
-    {% if user.is_authenticated %}
-    <!-- 個人資料管理 -->
-    <div class="modal-bg" id="profileModal">
-        <div class="modal profile-modal">
-            <div class="profile-header">
-                <div class="profile-title">個人資料管理</div>
-                <button type="button" class="profile-close" onclick="closeProfileModal()">✕</button>
-            </div>
-
-            <form method="post" action="{% url 'profile' %}">
+              <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
+                <button type="submit" class="user-menu-item user-menu-item-logout">登出</button>
+              </form>
+            </div>
+          </div>
+        {% else %}
+          <button class="btn btn-login" type="button" onclick="openLogin()">登入</button>
+        {% endif %}
+      </div>
 
-                <div class="profile-grid">
-                    <div class="profile-label">姓名：</div>
-                    <div class="profile-value">
-                        {{ student_name|default:user.get_full_name|default:user.username }}
-                    </div>
-
-                    <div class="profile-label">帳號：</div>
-                    <div class="profile-input">
-                        <input type="text" value="{{ user.username }}" readonly>
-                    </div>
-
-                    <div class="profile-label">班級：</div>
-                    <div class="profile-value">
-                        {{ student_class|default:"資四三A" }}
-                    </div>
-
-                    <div class="profile-label">密碼：</div>
-                    <div class="profile-input">
-                        <input type="password" value="********" readonly>
-                    </div>
-
-                    <div class="profile-label">學號：</div>
-                    <div class="profile-value">
-                        {{ student_id|default:"122214134" }}
-                    </div>
-
-                    <div class="profile-label">更新密碼：</div>
-                    <div class="profile-input">
-                        <input type="password" name="new_password" placeholder="請輸入新密碼">
-                    </div>
-
-                    <div class="profile-label">確認密碼：</div>
-                    <div class="profile-input">
-                        <input type="password" name="confirm_password" placeholder="再次輸入新密碼">
-                    </div>
-                </div>
-
-                {% if messages %}
-                    <div style="font-size:13px; text-align:left; margin-bottom:8px;">
-                        {% for message in messages %}
-                            <div style="color:{% if message.tags == 'error' %}#b91c1c{% else %}#16a34a{% endif %}; font-weight:900;">
-                                {{ message }}
-                            </div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-
-                <div class="modal-actions" style="justify-content:flex-end;">
-                    <button type="button" class="btn btn-cancel" onclick="closeProfileModal()">取消</button>
-                    <button type="submit" class="btn btn-primary">確認</button>
-                </div>
-            </form>
+      <!-- 通知面板 -->
+      <div id="notifPanel" class="hidden fixed top-16 right-6 w-[360px] max-w-[92vw] bg-white border border-zinc-100 shadow-xl rounded-2xl p-3"
+           style="display:none;">
+        <div class="flex items-center justify-between mb-2">
+          <div class="font-extrabold text-zinc-900">通知</div>
+          <button type="button" class="text-zinc-400 hover:text-zinc-900" onclick="toggleNotifPanel()">✕</button>
         </div>
-    </div>
 
-    {% if not admin_mode %}
-    <!-- 個人課表 -->
-    <div class="modal-bg" id="personalScheduleModal">
-        <div class="modal personal-modal">
-            <div class="personal-header">
-                <div class="personal-title">個人課表</div>
-                <button type="button" class="personal-close" onclick="closePersonalScheduleModal()">✕</button>
+        <div class="space-y-2">
+          <div class="p-3 rounded-xl border border-emerald-100 bg-emerald-50">
+            <div class="text-sm font-extrabold text-emerald-900">系統提示</div>
+            <div class="text-xs text-emerald-800 mt-1">你可以在課程列表直接點擊課名查看詳細資料。</div>
+          </div>
+
+          <div class="p-3 rounded-xl border border-zinc-100 bg-white">
+            <div class="text-sm font-extrabold text-zinc-900">小技巧</div>
+            <div class="text-xs text-zinc-600 mt-1">學生身分登入後，可新增/移除個人課表課程並檢查衝堂。</div>
+          </div>
+
+          <div class="p-3 rounded-xl border border-zinc-100 bg-white">
+            <div class="text-sm font-extrabold text-zinc-900">提醒</div>
+            <div class="text-xs text-zinc-600 mt-1">若教室顯示「老師於iclass宣布」，代表尚未公告教室。</div>
+          </div>
+        </div>
+
+        <div class="mt-3 flex justify-end gap-2">
+          <button type="button" class="px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-900 font-extrabold text-sm"
+                  onclick="toggleNotifPanel()">知道了</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Content -->
+    <div class="p-6 max-w-7xl mx-auto space-y-8">
+
+      <!-- 查詢條件（原本 card 保留） -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">查詢條件</div>
+        </div>
+
+        {% if admin_mode %}
+          <form id="searchFormAdmin" method="get" onsubmit="return checkSearchConditionsAdmin();">
+            <input type="hidden" name="submitted" value="1">
+
+            <div class="form-item" style="max-width:520px;">
+              <div class="form-label">學期</div>
+              <div class="field">
+                <select class="dropdown" name="semester">
+                  <option value="" {% if not semester %}selected{% endif %}>請選擇</option>
+                  <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
+                  <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
+                </select>
+              </div>
             </div>
 
-            <div style="max-height: 75vh; overflow:auto;">
-                {{ personal_timetable_html|safe }}
+            <div class="form-actions">
+              <button class="btn btn-primary" type="submit">檢視課程</button>
             </div>
-        </div>
-    </div>
-    {% endif %}
-    {% endif %}
+          </form>
 
-    <!-- 登入 -->
-    <div class="modal-bg" id="loginModal">
-        <div class="modal">
-            <div class="modal-title">登入系統</div>
+        {% else %}
+          <form id="searchFormStudent" method="get" onsubmit="return checkSearchConditionsStudent();">
+            <input type="hidden" name="submitted" value="1">
 
-            <form method="post" action="">
-                {% csrf_token %}
-                <input type="hidden" name="role" id="loginRoleInput" value="">
-                <input class="login-input" type="text" name="username" placeholder="帳號">
-                <input class="login-input" type="password" name="password" placeholder="密碼">
-
-                {% if login_error %}
-                    <div style="color:#b91c1c; font-size:13px; margin-top:8px; text-align:left; font-weight:900;">
-                        {{ login_error }}
-                    </div>
-                {% endif %}
-
-                <div class="modal-actions" style="justify-content:flex-end;">
-                    <button class="btn btn-cancel" type="button" onclick="closeLogin()">取消</button>
-                    <button class="btn btn-primary" type="submit">登入</button>
+            <div class="form-grid">
+              <div>
+                <div class="form-item">
+                  <div class="form-label">學期</div>
+                  <div class="field">
+                    <select class="dropdown" name="semester">
+                      <option value="" {% if not semester %}selected{% endif %}>全部</option>
+                      <option value="1141" {% if semester == "1141" %}selected{% endif %}>1141</option>
+                      <option value="1132" {% if semester == "1132" %}selected{% endif %}>1132</option>
+                    </select>
+                  </div>
                 </div>
-            </form>
+
+                <div class="form-item">
+                  <div class="form-label">學制</div>
+                  <div class="field">
+                    <select class="dropdown" name="system">
+                      <option value="" {% if not system %}selected{% endif %}>全部</option>
+                      <option value="二專" {% if system == "二專" %}selected{% endif %}>二專</option>
+                      <option value="二技" {% if system == "二技" %}selected{% endif %}>二技</option>
+                      <option value="二技(三年)" {% if system == "二技(三年)" %}selected{% endif %}>二技(三年)</option>
+                      <option value="四技" {% if system == "四技" %}selected{% endif %}>四技</option>
+                      <option value="學士後多元專長" {% if system == "學士後多元專長" %}selected{% endif %}>學士後多元專長</option>
+                      <option value="碩士班" {% if system == "碩士班" %}selected{% endif %}>碩士班</option>
+                      <option value="博士班" {% if system == "博士班" %}selected{% endif %}>博士班</option>
+                      <option value="學士後學位學程" {% if system == "學士後學位學程" %}selected{% endif %}>學士後學位學程</option>
+                      <option value="學士後系" {% if system == "學士後系" %}selected{% endif %}>學士後系</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-item">
+                  <div class="form-label">年級</div>
+                  <div class="field">
+                    <select class="dropdown" name="grade">
+                      <option value="" {% if not grade %}selected{% endif %}>全部</option>
+                      <option value="1" {% if grade == "1" %}selected{% endif %}>一年級</option>
+                      <option value="2" {% if grade == "2" %}selected{% endif %}>二年級</option>
+                      <option value="3" {% if grade == "3" %}selected{% endif %}>三年級</option>
+                      <option value="4" {% if grade == "4" %}selected{% endif %}>四年級</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="form-item">
+                  <div class="form-label">科系</div>
+                  <div class="field">
+                    <select class="dropdown" name="department">
+                      <option value="" {% if not department %}selected{% endif %}>全部</option>
+                      <option value="22140" {% if department == "22140" %}selected{% endif %}>資訊管理系</option>
+                      <option value="11140" {% if department == "11140" %}selected{% endif %}>護理系</option>
+                      <option value="21140" {% if department == "21140" %}selected{% endif %}>健康事業管理系</option>
+                      <option value="24120" {% if department == "24120" %}selected{% endif %}>長期照護系</option>
+                      <option value="13140" {% if department == "13140" %}selected{% endif %}>高齡健康照護系</option>
+                      <option value="31140" {% if department == "31140" %}selected{% endif %}>嬰幼兒保育系</option>
+                      <option value="25140" {% if department == "25140" %}selected{% endif %}>語言治療與聽力學系</option>
+                      <option value="23140" {% if department == "23140" %}selected{% endif %}>休閒產業與健康促進系</option>
+                      <option value="32140" {% if department == "32140" %}selected{% endif %}>運動保健系</option>
+                      <option value="33140" {% if department == "33140" %}selected{% endif %}>生死與健康心理諮商系</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div class="form-item">
+                  <div class="form-label">老師</div>
+                  <div class="field">
+                    <input class="text-input" type="text" name="teacher" placeholder="輸入老師名稱" value="{{ teacher }}">
+                  </div>
+                </div>
+
+                <div class="form-item">
+                  <div class="form-label">課程</div>
+                  <div class="field">
+                    <input class="text-input" type="text" name="course_name" placeholder="輸入課程名稱" value="{{ course_name }}">
+                  </div>
+                </div>
+
+                <div class="form-item">
+                  <div class="form-label">代碼</div>
+                  <div class="field">
+                    <input class="text-input" type="text" name="course_code" placeholder="Ex: 43160185501110" value="{{ course_code }}">
+                  </div>
+                </div>
+
+                <div class="form-item">
+                  <div class="form-label">課別</div>
+                  <div class="field">
+                    <select class="dropdown" name="class_type">
+                      <option value="" {% if not class_type %}selected{% endif %}>全部</option>
+                      {% for opt in class_type_options %}
+                        <option value="{{ opt }}" {% if class_type == opt %}selected{% endif %}>{{ opt }}</option>
+                      {% endfor %}
+                    </select>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section-divider"></div>
+
+            <div class="day-row">
+              <div class="day-label-text">星期</div>
+              <div class="day-select">
+                <label><input type="checkbox" name="day" value="1" {% if "1" in days_selected %}checked{% endif %}><span class="day-box">一</span></label>
+                <label><input type="checkbox" name="day" value="2" {% if "2" in days_selected %}checked{% endif %}><span class="day-box">二</span></label>
+                <label><input type="checkbox" name="day" value="3" {% if "3" in days_selected %}checked{% endif %}><span class="day-box">三</span></label>
+                <label><input type="checkbox" name="day" value="4" {% if "4" in days_selected %}checked{% endif %}><span class="day-box">四</span></label>
+                <label><input type="checkbox" name="day" value="5" {% if "5" in days_selected %}checked{% endif %}><span class="day-box">五</span></label>
+                <label><input type="checkbox" name="day" value="6" {% if "6" in days_selected %}checked{% endif %}><span class="day-box">六</span></label>
+                <label><input type="checkbox" name="day" value="7" {% if "7" in days_selected %}checked{% endif %}><span class="day-box">日</span></label>
+              </div>
+            </div>
+
+            <div class="period-row">
+              <div class="period-label-text">節次</div>
+              <div class="period-group">
+                {% for p in period_range %}
+                  <label class="period-box">
+                    <input type="checkbox" name="period" value="{{ p }}" {% if p in periods_selected_int %}checked{% endif %}>
+                    <span>{{ p }}</span>
+                  </label>
+                {% endfor %}
+              </div>
+            </div>
+
+            <div class="form-actions">
+              <button class="btn btn-cancel" type="button" onclick="clearFiltersStudent()">清除</button>
+              <button class="btn btn-primary" type="submit">查詢</button>
+            </div>
+          </form>
+        {% endif %}
+      </div>
+
+      <!-- 查詢結果（原本保留，學生模式保留課表表格） -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">查詢結果</div>
+          {% if not admin_mode %}
+            {% if role_name != "學生" %}
+              <div class="card-desc">只有學生身分可新增/移除個人課表課程</div>
+            {% endif %}
+          {% endif %}
         </div>
+
+        {% if admin_mode %}
+          {% if not semester or not request.GET.submitted %}
+            <div class="no-result">請選擇學期後按「檢視課程」。</div>
+          {% else %}
+            <div class="timetable-wrapper">
+              <div class="timetable-title">授課教師：連中岳（課程列表）</div>
+
+              {% if admin_courses %}
+                <div class="overflow-x-auto">
+                  <table class="timetable">
+                    <tr>
+                      <th>學期</th>
+                      <th>系所</th>
+                      <th>年級</th>
+                      <th>班組</th>
+                      <th>課別</th>
+                      <th>科目名稱</th>
+                      <th>時間</th>
+                      <th>教室</th>
+                      <th class="op-col">操作</th>
+                    </tr>
+
+                    {% for c in admin_courses %}
+                      <tr>
+                        <td>{{ c.semester|default:"-" }}</td>
+                        <td>{{ c.dept_name|default:c.department_code|default:"-" }}</td>
+                        <td>{{ c.grade|default:"-" }}</td>
+                        <td>{{ c.class_group|default:"-" }}</td>
+                        <td>{{ c.division|default:"-" }}</td>
+                        <td>
+                          <div class="course-cell course-clickable"
+                               data-id="{{ c.id }}"
+                               data-name="{{ c.course_name|default:'-'|escapejs }}"
+                               data-dept="{{ c.dept_name|default:c.department_code|default:'-'|escapejs }}"
+                               data-teacher="{{ c.teacher|default:'-'|escapejs }}"
+                               data-room="{{ c.classroom|default:'-'|escapejs }}"
+                               data-time="星期{{ c.day|default:'-' }} 第{{ c.period|default:'-' }}節{% if c.week_info %}（{{ c.week_info }}）{% endif %}"
+                               data-week="{{ c.week_info|default:''|escapejs }}"
+                               data-code="{{ c.course_code|default:''|escapejs }}"
+                               data-summary="{{ c.course_summary_ch|default:''|escapejs }}"
+                               style="cursor:pointer;">
+                            {{ c.course_name|default:"-" }}
+                          </div>
+                        </td>
+                        <td>星期{{ c.day }} 第{{ c.period }}節</td>
+                        <td>
+                          {% if c.classroom and c.classroom != "-" %}
+                            {{ c.classroom }}
+                          {% else %}
+                            老師於iclass宣布
+                          {% endif %}
+                        </td>
+                        <td>
+                          <form method="post" action="{% url 'delete_course' c.id %}" style="margin:0;"
+                                onsubmit="return confirm('確定要刪除【{{ c.course_name }}】嗎？');">
+                            {% csrf_token %}
+                            <button class="btn btn-danger" type="submit">刪除</button>
+                          </form>
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </table>
+                </div>
+              {% else %}
+                <div class="no-result">查無「連中岳」老師在此學期的課程資料。</div>
+              {% endif %}
+
+              <div class="form-actions" style="margin-top:14px;">
+                <a class="btn btn-primary" href="{% url 'add_course' %}?semester={{ semester|default:'1141' }}">新增課程</a>
+              </div>
+            </div>
+          {% endif %}
+        {% else %}
+          <div class="overflow-x-auto">
+            {{ timetable_html|safe }}
+          </div>
+        {% endif %}
+      </div>
+
     </div>
+  </main>
+
+  <!-- Toast -->
+  <div class="toast" id="toast">
+    <div class="toast-title">提示</div>
+    <div class="toast-msg">-</div>
+    <div class="toast-actions">
+      <button type="button" class="toast-btn toast-btn-close" onclick="hideToast()">關閉</button>
+      <button type="button" class="toast-btn toast-btn-ok" onclick="hideToast()">知道了</button>
+    </div>
+  </div>
+
+  <!-- ===== 新增：總覽儀表板 modal（解決遮擋：快捷鍵會先關自己再開別的） ===== -->
+  <div class="modal-bg" id="dashboardModal">
+    <div class="modal personal-modal" style="width:860px; max-width:95vw;">
+      <div class="personal-header">
+        <div class="personal-title">總覽儀表板</div>
+        <button type="button" class="personal-close" onclick="closeDashboardModal()">✕</button>
+      </div>
+
+      <div class="detail-box">
+        <div class="detail-title">總覽儀表板</div>
+
+        <div style="display:grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 14px;">
+          <div style="border:1px solid #a7f3d0; background:#ecfdf5; border-radius:16px; padding:14px;">
+            <div style="font-size:13px; font-weight:900; color:#065f46;">我的課表已加入</div>
+            <div style="font-size:40px; font-weight:900; line-height:1; margin-top:8px;" id="dash_my_count">0</div>
+            <div style="font-size:12px; color:#6b7280; margin-top:8px;">以 MY_COURSE_IDS 計算</div>
+          </div>
+
+          <div style="border:1px solid #e5e7eb; background:#ffffff; border-radius:16px; padding:14px;">
+            <div style="font-size:13px; font-weight:900; color:#111827;">本次查詢結果課程數</div>
+            <div style="font-size:40px; font-weight:900; line-height:1; margin-top:8px;" id="dash_result_count">0</div>
+            <div style="font-size:12px; color:#6b7280; margin-top:8px;">以 course-clickable 數量計算</div>
+          </div>
+
+          <div style="border:1px solid #e5e7eb; background:#ffffff; border-radius:16px; padding:14px;">
+            <div style="font-size:13px; font-weight:900; color:#111827;">目前模式</div>
+            <div style="font-size:22px; font-weight:900; margin-top:10px;" id="dash_mode">-</div>
+            <div style="font-size:12px; color:#6b7280; margin-top:8px;">依 admin_mode / role 判斷</div>
+          </div>
+        </div>
+
+        <div class="detail-divider"></div>
+
+        <div class="detail-subtitle">快速操作</div>
+        <div id="dash_quick" style="display:grid; grid-template-columns: 1fr 1fr; gap: 10px;"></div>
+
+        <div class="modal-actions" style="justify-content:flex-end; margin-top:14px;">
+          <button type="button" class="btn btn-cancel" onclick="closeDashboardModal()">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 新增：收藏清單 modal（先做出有內容的展示，不影響你既有邏輯） ===== -->
+  <div class="modal-bg" id="bookmarksModal">
+    <div class="modal personal-modal" style="width:780px; max-width:95vw;">
+      <div class="personal-header">
+        <div class="personal-title">收藏清單</div>
+        <button type="button" class="personal-close" onclick="closeBookmarksModal()">✕</button>
+      </div>
+
+      <div class="detail-box">
+        <div class="detail-title">收藏清單</div>
+        <div class="detail-summary">
+目前為「示意版」：你可以之後把收藏資料接到資料庫（ManyToMany 或 收藏表）。
+（這份不會影響查詢/新增個人課表的既有邏輯）
+
+- 收藏課程示例 1：資料庫系統
+- 收藏課程示例 2：人工智慧導論
+- 收藏課程示例 3：使用者介面設計
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="btn btn-cancel" onclick="closeBookmarksModal()">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 課程詳細資料 -->
+  <div class="modal-bg" id="courseDetailModal">
+    <div class="modal personal-modal" style="width:820px; max-width:95vw;">
+      <div class="personal-header">
+        <div class="personal-title">課程詳細資料</div>
+        <button type="button" class="personal-close" onclick="closeCourseDetail()">✕</button>
+      </div>
+
+      <div class="detail-box">
+        <div class="detail-title">課程詳細資料</div>
+        <div class="detail-grid">
+          <div class="detail-label">科目名稱</div><div class="detail-value" id="cd_name">-</div>
+          <div class="detail-label">系所</div><div class="detail-value" id="cd_dept">-</div>
+
+          <div class="detail-label">授課教師</div>
+          <div class="detail-value">
+            <button type="button" id="cd_teacher_btn" class="teacher-link">
+              <span id="cd_teacher">-</span>
+            </button>
+
+            <div class="teacher-meta" id="cd_teacher_meta" style="display:none;">
+              <span class="chip"><span class="k">中文姓名</span><span id="cd_teacher_ch">-</span></span>
+              <span class="chip"><span class="k">類別</span><span id="cd_teacher_cat">-</span></span>
+              <span class="chip"><span class="k">校內分機</span><span id="cd_teacher_ext">-</span></span>
+            </div>
+          </div>
+
+          <div class="detail-label">教室</div>
+          <div class="detail-value">
+            <span id="cd_room">-</span>
+            <button type="button" id="cd_room_loc_btn" class="room-loc-btn">教室大樓位置</button>
+          </div>
+
+          <div class="detail-label">時間</div><div class="detail-value" id="cd_time">-</div>
+          <div class="detail-label">上課週次</div><div class="detail-value" id="cd_week">-</div>
+          <div class="detail-label">科目代碼</div><div class="detail-value" id="cd_code">-</div>
+        </div>
+
+        <div class="detail-divider"></div>
+
+        <div class="detail-subtitle">課程摘要</div>
+        <div class="detail-summary" id="cd_summary">-</div>
+
+        <div class="modal-actions" style="justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="btn btn-cancel" onclick="closeCourseDetail()">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 教師資料 -->
+  <div class="modal-bg" id="teacherDetailModal">
+    <div class="modal personal-modal" style="width:520px; max-width:95vw;">
+      <div class="personal-header">
+        <div class="personal-title">教師資料</div>
+        <button type="button" class="personal-close" onclick="closeTeacherDetail()">✕</button>
+      </div>
+
+      <div class="detail-box">
+        <div class="detail-title">教師資料</div>
+        <div class="detail-grid">
+          <div class="detail-label">中文姓名</div><div class="detail-value" id="td_name">-</div>
+          <div class="detail-label">類別</div><div class="detail-value" id="td_category">-</div>
+          <div class="detail-label">校內分機</div><div class="detail-value" id="td_ext">-</div>
+        </div>
+
+        <div class="modal-actions" style="justify-content:flex-end; margin-top:12px;">
+          <button type="button" class="btn btn-cancel" onclick="closeTeacherDetail()">關閉</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 身分選擇 -->
+  <div class="modal-bg" id="roleModal">
+    <div class="modal">
+      <div class="modal-title">請選擇身分</div>
+      <div class="modal-actions">
+        <button class="role-btn" type="button" onclick="selectRole('admin')">管理員</button>
+        <button class="role-btn" type="button" onclick="selectRole('student')">學生</button>
+        <button class="role-btn" type="button" onclick="closeRoleModal()">取消</button>
+      </div>
+    </div>
+  </div>
+
+  {% if user.is_authenticated %}
+  <!-- 個人資料管理 -->
+  <div class="modal-bg" id="profileModal">
+    <div class="modal profile-modal">
+      <div class="profile-header">
+        <div class="profile-title">個人資料管理</div>
+        <button type="button" class="profile-close" onclick="closeProfileModal()">✕</button>
+      </div>
+
+      <form method="post" action="{% url 'profile' %}">
+        {% csrf_token %}
+
+        <div class="profile-grid">
+          <div class="profile-label">姓名：</div>
+          <div class="profile-value">
+            {{ student_name|default:user.get_full_name|default:user.username }}
+          </div>
+
+          <div class="profile-label">帳號：</div>
+          <div class="profile-input">
+            <input type="text" value="{{ user.username }}" readonly>
+          </div>
+
+          <div class="profile-label">班級：</div>
+          <div class="profile-value">
+            {{ student_class|default:"資四三A" }}
+          </div>
+
+          <div class="profile-label">密碼：</div>
+          <div class="profile-input">
+            <input type="password" value="********" readonly>
+          </div>
+
+          <div class="profile-label">學號：</div>
+          <div class="profile-value">
+            {{ student_id|default:"122214134" }}
+          </div>
+
+          <div class="profile-label">更新密碼：</div>
+          <div class="profile-input">
+            <input type="password" name="new_password" placeholder="請輸入新密碼">
+          </div>
+
+          <div class="profile-label">確認密碼：</div>
+          <div class="profile-input">
+            <input type="password" name="confirm_password" placeholder="再次輸入新密碼">
+          </div>
+        </div>
+
+        {% if messages %}
+          <div style="font-size:13px; text-align:left; margin-bottom:8px;">
+            {% for message in messages %}
+              <div style="color:{% if message.tags == 'error' %}#b91c1c{% else %}#16a34a{% endif %}; font-weight:800;">
+                {{ message }}
+              </div>
+            {% endfor %}
+          </div>
+        {% endif %}
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-cancel" onclick="closeProfileModal()">取消</button>
+          <button type="submit" class="btn btn-primary">確認</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  {% if not admin_mode %}
+  <!-- 個人課表 -->
+  <div class="modal-bg" id="personalScheduleModal">
+    <div class="modal personal-modal">
+      <div class="personal-header">
+        <div class="personal-title">個人課表</div>
+        <button type="button" class="personal-close" onclick="closePersonalScheduleModal()">✕</button>
+      </div>
+
+      <div style="max-height: 75vh; overflow:auto;">
+        {{ personal_timetable_html|safe }}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  {% endif %}
+
+  <!-- 登入 -->
+  <div class="modal-bg" id="loginModal">
+    <div class="modal">
+      <div class="modal-title">登入系統</div>
+
+      <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="role" id="loginRoleInput" value="">
+        <input class="login-input" type="text" name="username" placeholder="帳號">
+        <input class="login-input" type="password" name="password" placeholder="密碼">
+
+        {% if login_error %}
+          <div style="color:#b91c1c; font-size:13px; margin-top:8px; text-align:left; font-weight:900;">
+            {{ login_error }}
+          </div>
+        {% endif %}
+
+        <div class="modal-actions">
+          <button class="btn btn-cancel" type="button" onclick="closeLogin()">取消</button>
+          <button class="btn btn-primary" type="submit">登入</button>
+        </div>
+      </form>
+    </div>
+  </div>
 
 </body>
 </html>
